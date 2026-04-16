@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dead Code Eliminator — DCE Visualizer</title>
+  <meta name="description" content="Interactive Dead Code Elimination visualizer using Three-Address Code (TAC) and backward liveness analysis." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══════════════════════════════════════════
+       DESIGN TOKENS
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg-deep:    #09090f;
+      --bg-surface: #0f0f1a;
+      --bg-card:    #141426;
+      --bg-card2:   #181830;
+      --bg-input:   #1a1a2e;
+
+      --border:     rgba(255,255,255,0.07);
+      --border-hi:  rgba(255,255,255,0.14);
+
+      --purple-bright: #a78bfa;
+      --purple-mid:    #7c3aed;
+      --purple-glow:   rgba(167,139,250,0.18);
+
+      --cyan:          #22d3ee;
+      --cyan-glow:     rgba(34,211,238,0.15);
+
+      --green:         #34d399;
+      --green-glow:    rgba(52,211,153,0.15);
+
+      --red:           #f87171;
+      --red-glow:      rgba(248,113,113,0.18);
+
+      --amber:         #fbbf24;
+      --amber-glow:    rgba(251,191,36,0.15);
+
+      --text-hi:   #f0f0ff;
+      --text-mid:  #a0a0c0;
+      --text-lo:   #5a5a7a;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+
+      --shadow-card: 0 4px 32px rgba(0,0,0,0.5);
+      --shadow-glow: 0 0 40px rgba(124,58,237,0.25);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-hi);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── animated grid bg ───────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(167,139,250,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(167,139,250,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── glow orbs ─────────────────────────── */
+    .orb {
+      position: fixed; border-radius: 50%;
+      filter: blur(100px); pointer-events: none; z-index: 0;
+    }
+    .orb-1 { width: 500px; height: 500px; top: -150px; left: -150px;
+              background: rgba(124,58,237,0.20); }
+    .orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px;
+              background: rgba(34,211,238,0.12); }
+
+    /* ═══════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════ */
+    .app { position: relative; z-index: 1; }
+
+    /* ── header ─────────────────────────────── */
+    header {
+      padding: 32px 48px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      background: rgba(9,9,15,0.6);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .logo {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--purple-mid), #1d4ed8);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; box-shadow: 0 0 20px rgba(124,58,237,0.5);
+    }
+    .logo-text h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+    .logo-text span { font-size: 0.75rem; color: var(--text-mid); font-weight: 400; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;
+      background: var(--purple-glow);
+      border: 1px solid rgba(167,139,250,0.3);
+      color: var(--purple-bright);
+    }
+    .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
+                     background: var(--purple-bright); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── main layout ───────────────────────── */
+    main {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      min-height: calc(100vh - 89px);
+    }
+
+    /* ── left panel ─────────────────────────── */
+    .panel-left {
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      background: rgba(15,15,26,0.5);
+    }
+
+    .panel-section {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .panel-section:last-child { border-bottom: none; flex: 1; }
+
+    .section-label {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em;
+      color: var(--text-lo); text-transform: uppercase; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* demos */
+    .demo-grid { display: flex; flex-direction: column; gap: 8px; }
+    .demo-btn {
+      width: 100%; text-align: left; padding: 12px 16px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-mid); font-family: 'Inter', sans-serif;
+      font-size: 0.82rem; cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .demo-btn:hover, .demo-btn.active {
+      border-color: var(--purple-bright);
+      background: var(--purple-glow);
+      color: var(--text-hi);
+    }
+    .demo-btn .demo-icon { font-size: 16px; }
+    .demo-btn .demo-info { display: flex; flex-direction: column; gap: 2px; }
+    .demo-btn .demo-name { font-weight: 600; font-size: 0.85rem; }
+    .demo-btn .demo-desc { font-size: 0.72rem; opacity: 0.6; }
+
+    /* editor */
+    .editor-wrap { position: relative; }
+    #code-editor {
+      width: 100%;
+      height: 260px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; line-height: 1.7;
+      padding: 16px;
+      resize: none; outline: none;
+      transition: border-color 0.2s;
+    }
+    #code-editor:focus { border-color: var(--purple-bright); }
+
+    .run-btn {
+      width: 100%; margin-top: 12px;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--purple-mid), #1d4ed8);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.9rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: all 0.2s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+    }
+    .run-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(124,58,237,0.6);
+    }
+    .run-btn:active { transform: translateY(0); }
+    .run-btn.loading { opacity: 0.7; pointer-events: none; }
+
+    /* error box */
+    #error-box {
+      display: none;
+      margin-top: 10px;
+      padding: 12px 16px;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: var(--radius-sm);
+      color: var(--red);
+      font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── right panel ─────────────────────────── */
+    .panel-right {
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* stats bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+
+    .stat-card {
+      padding: 20px 24px;
+      border-right: 1px solid var(--border);
+      transition: background 0.3s;
+    }
+    .stat-card:last-child { border-right: none; }
+    .stat-card:hover { background: var(--bg-card); }
+    .stat-label {
+      font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--text-lo); text-transform: uppercase; margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 2rem; font-weight: 800; letter-spacing: -0.03em;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+    }
+    .stat-value.v-total   { color: var(--text-hi); }
+    .stat-value.v-live    { color: var(--green); }
+    .stat-value.v-dead    { color: var(--red); }
+    .stat-value.v-pct     { color: var(--amber); }
+    .stat-sub { font-size: 0.72rem; color: var(--text-lo); margin-top: 4px; }
+
+    /* tabs */
+    .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--bg-surface); }
+    .tab-btn {
+      padding: 14px 24px;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      color: var(--text-lo); font-family: 'Inter', sans-serif;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .tab-btn:hover { color: var(--text-mid); }
+    .tab-btn.active { color: var(--purple-bright); border-bottom-color: var(--purple-bright); }
+
+    /* content area */
+    .content-area {
+      flex: 1; overflow-y: auto; padding: 24px;
+      background: var(--bg-deep);
+    }
+
+    /* welcome screen */
+    #welcome {
+      height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; gap: 20px;
+      color: var(--text-lo);
+    }
+    .welcome-icon { font-size: 64px; opacity: 0.3; }
+    #welcome h2 { font-size: 1.3rem; color: var(--text-mid); }
+    #welcome p { font-size: 0.85rem; max-width: 360px; line-height: 1.7; }
+
+    /* ── TAC list ─────────────────────────────── */
+    .tac-list { display: flex; flex-direction: column; gap: 4px; }
+
+    .tac-row {
+      display: grid;
+      grid-template-columns: 36px 8px 1fr auto;
+      gap: 0 12px;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      transition: all 0.25s ease;
+      cursor: default;
+      animation: fadeInRow 0.3s ease both;
+    }
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateX(-10px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .tac-row:nth-child(n) { animation-delay: calc(var(--i, 0) * 0.03s); }
+
+    .tac-row.live {
+      background: rgba(52,211,153,0.05);
+      border-color: rgba(52,211,153,0.12);
+    }
+    .tac-row.dead {
+      background: rgba(248,113,113,0.06);
+      border-color: rgba(248,113,113,0.15);
+    }
+    .tac-row.control { background: rgba(251,191,36,0.04); border-color: rgba(251,191,36,0.1); }
+    .tac-row.label-row { background: transparent; border-color: transparent; }
+
+    .tac-row:hover { border-color: var(--border-hi); }
+    .tac-row.dead:hover { border-color: rgba(248,113,113,0.35); }
+    .tac-row.selected { border-color: var(--purple-bright) !important; background: var(--purple-glow) !important; }
+
+    .row-idx {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem; color: var(--text-lo);
+      text-align: right;
+    }
+    .row-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .live .row-dot   { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .dead .row-dot   { background: var(--red);   box-shadow: 0 0 6px var(--red);   }
+    .control .row-dot { background: var(--amber); }
+    .label-row .row-dot { background: transparent; }
+
+    .row-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem; color: var(--text-hi);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dead .row-code { color: var(--text-lo); text-decoration: line-through; }
+    .label-row .row-code { color: var(--purple-bright); font-weight: 600; }
+    .control .row-code { color: var(--amber); }
+
+    .row-badge {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+      padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+    }
+    .badge-dead   { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+    .badge-live   { background: rgba(52,211,153,0.1);  color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+    .badge-ctrl   { background: rgba(251,191,36,0.1);  color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+    .badge-label  { background: rgba(167,139,250,0.1); color: var(--purple-bright); border: 1px solid rgba(167,139,250,0.2); }
+
+    /* ── detail panel (click a row) ──────────── */
+    #detail-panel {
+      display: none;
+      margin-top: 16px;
+      padding: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-hi);
+      border-radius: var(--radius-md);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .detail-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+                    color: var(--text-lo); text-transform: uppercase; margin-bottom: 14px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .detail-cell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+    .detail-cell-label { font-size: 0.65rem; color: var(--text-lo); font-weight: 600;
+                         letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    .detail-cell-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      display: flex; flex-wrap: wrap; gap: 4px;
+    }
+    .var-chip {
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 0.7rem; font-weight: 500;
+    }
+    .chip-live  { background: rgba(52,211,153,0.15);  color: var(--green); }
+    .chip-def   { background: rgba(167,139,250,0.15); color: var(--purple-bright); }
+    .chip-use   { background: rgba(34,211,238,0.15);  color: var(--cyan); }
+    .chip-empty { color: var(--text-lo); font-size: 0.72rem; }
+
+    /* ── clean output tab ────────────────────── */
+    .clean-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem; line-height: 2;
+      color: var(--green);
+    }
+    .clean-line { display: flex; gap: 12px; align-items: center; }
+    .clean-line-num { color: var(--text-lo); min-width: 28px; text-align: right; font-size: 0.7rem; }
+
+    /* ── liveness heatmap tab ─────────────────── */
+    .heatmap-wrap { overflow-x: auto; }
+    .heatmap-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    }
+    .heatmap-table thead th {
+      padding: 8px 10px; background: var(--bg-card2);
+      color: var(--text-lo); font-weight: 600; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    .heatmap-table tbody td {
+      padding: 7px 10px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .heatmap-table tbody tr:hover td { background: var(--bg-card); }
+    .hm-idx { color: var(--text-lo); text-align: center; }
+    .hm-instr { color: var(--text-mid); }
+    .hm-dead-row .hm-instr { color: var(--red); opacity: 0.6; }
+    .hm-cell {
+      text-align: center;
+      min-width: 80px;
+      max-width: 120px;
+    }
+    .hm-vars { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+    .hm-chip {
+      padding: 2px 6px; border-radius: 4px;
+      font-size: 0.65rem; background: rgba(52,211,153,0.12);
+      color: var(--green);
+    }
+
+    /* ── CFG overview tab ────────────────────── */
+    .cfg-wrap { display: flex; flex-direction: column; gap: 8px; }
+    .cfg-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex; flex-direction: column; gap: 6px;
+      animation: fadeInRow 0.3s ease both;
+    }
+    .cfg-block-title { font-size: 0.7rem; color: var(--purple-bright); font-weight: 700; text-transform: uppercase; }
+    .cfg-instrs { display: flex; flex-direction: column; gap: 2px; }
+    .cfg-instr {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      padding: 3px 8px; border-radius: 4px;
+    }
+    .cfg-instr.dead-instr { color: var(--red); background: rgba(248,113,113,0.08);
+                             text-decoration: line-through; }
+    .cfg-instr.live-instr { color: var(--text-mid); }
+    .cfg-arrow { text-align: center; color: var(--text-lo); font-size: 1.2rem; line-height: 1; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(167,139,250,0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(167,139,250,0.5); }
+
+    /* progress bar on stats */
+    .stat-bar-wrap { margin-top: 8px; height: 3px; background: var(--bg-card2); border-radius: 99px; }
+    .stat-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+
+    /* spin anim for run btn */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+               border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+    /* ── responsive ───────────────────────────── */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .panel-left { border-right: none; border-bottom: 1px solid var(--border); }
+      .stats-bar { grid-template-columns: repeat(2, 1fr); }
+      header { padding: 16px 24px; }
+    }
+
+    /* ── transitions for tab panels ────────────── */
+    .tab-panel { display: none; animation: fadeInRow 0.3s ease; }
+    .tab-panel.active { display: block; }
+
+  </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="app">
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🧹</div>
+      <div class="logo-text">
+        <h1>DCE Visualizer</h1>
+        <span>Dead Code Elimination · Three-Address Code · Liveness Analysis</span>
+      </div>
+    </div>
+    <div class="badge">Live Analysis Engine</div>
+  </header>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main>
+
+    <!-- ─── LEFT PANEL ─────────────────── -->
+    <div class="panel-left">
+
+      <!-- Demo buttons -->
+      <div class="panel-section">
+        <div class="section-label">Example Programs</div>
+        <div class="demo-grid">
+          <button class="demo-btn" id="demo1-btn" onclick="loadDemo(1)">
+            <span class="demo-icon">💀</span>
+            <div class="demo-info">
+              <span class="demo-name">Dead Variables</span>
+              <span class="demo-desc">b and unused_sum never read</span>
+            </div>
+          </button>
+          <button class="demo-btn" id="demo2-btn" onclick="loadDemo(2)">
+            <span class="demo-icon">📐</span>
+            <div class="demo-info">
+              <span class="demo-name">Pythagorean Sum</span>
+              <span class="demo-desc">x reassigned after last use</span>
+            </div>
+          </button>
+          <button class="demo-btn" id="demo3-btn" onclick="loadDemo(3)">
+            <span class="demo-icon">🔄</span>
+            <div class="demo-info">
+              <span class="demo-name">Loop + Scratch</span>
+              <span class="demo-desc">scratch dead every iteration</span>
+            </div>
+          </button>
+          <button class="demo-btn" id="demo4-btn" onclick="loadDemo(4)">
+            <span class="demo-icon">🌿</span>
+            <div class="demo-info">
+              <span class="demo-name">Branching Code</span>
+              <span class="demo-desc">dead assignments in if-else</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div class="panel-section" style="flex:1">
+        <div class="section-label">Source Editor</div>
+        <div class="editor-wrap">
+          <textarea id="code-editor" spellcheck="false" placeholder="// Write your mini-language code here
+// Supports: assignments, if, while, print, return
+// Example:
+x = 10;
+y = x + 5;
+dead = 99;
+print(y);"
+          ></textarea>
+        </div>
+        <button class="run-btn" id="run-btn" onclick="runDCE()">
+          <span id="btn-icon">▶</span>
+          <span id="btn-text">Run DCE Analysis</span>
+        </button>
+        <div id="error-box"></div>
+      </div>
+
+      <!-- Legend -->
+      <div class="panel-section" style="padding: 16px 24px;">
+        <div class="section-label">Legend</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.78rem;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)"></span>
+            <span style="color:var(--text-mid)">Live instruction (kept)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.78rem;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red)"></span>
+            <span style="color:var(--text-mid)">Dead assignment (eliminated)</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;font-size:0.78rem;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--amber)"></span>
+            <span style="color:var(--text-mid)">Control flow (label/goto)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── RIGHT PANEL ────────────────── -->
+    <div class="panel-right">
+
+      <!-- Stats Bar -->
+      <div class="stats-bar" id="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Instructions</div>
+          <div class="stat-value v-total" id="stat-total">—</div>
+          <div class="stat-sub">before DCE</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="bar-total" style="background:var(--text-lo);width:100%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Live</div>
+          <div class="stat-value v-live" id="stat-live">—</div>
+          <div class="stat-sub">kept after DCE</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="bar-live" style="background:var(--green);width:0%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Eliminated</div>
+          <div class="stat-value v-dead" id="stat-dead">—</div>
+          <div class="stat-sub">dead assignments</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="bar-dead" style="background:var(--red);width:0%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Reduction</div>
+          <div class="stat-value v-pct" id="stat-pct">—</div>
+          <div class="stat-sub">% eliminated</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" id="bar-pct" style="background:var(--amber);width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" id="tab-tac"    onclick="showTab('tac')">📋 TAC View</button>
+        <button class="tab-btn"        id="tab-clean"  onclick="showTab('clean')">✅ Clean Output</button>
+        <button class="tab-btn"        id="tab-live"   onclick="showTab('live')">📊 Liveness Table</button>
+        <button class="tab-btn"        id="tab-cfg"    onclick="showTab('cfg')">🗂️ Block View</button>
+      </div>
+
+      <!-- Content -->
+      <div class="content-area">
+
+        <!-- Welcome -->
+        <div id="welcome">
+          <div class="welcome-icon">🧹</div>
+          <h2>Choose a demo or write your code</h2>
+          <p>Select an example program on the left, or write your own code and click <strong>Run DCE Analysis</strong> to see the dead code highlighted in real time.</p>
+        </div>
+
+        <!-- TAC Tab -->
+        <div class="tab-panel" id="panel-tac">
+          <div class="tac-list" id="tac-list"></div>
+          <div id="detail-panel">
+            <div class="detail-title">🔬 Instruction Detail — <span id="detail-instr-text" style="color:var(--cyan)"></span></div>
+            <div class="detail-grid">
+              <div class="detail-cell">
+                <div class="detail-cell-label">Defines (writes)</div>
+                <div class="detail-cell-value" id="detail-defines"></div>
+              </div>
+              <div class="detail-cell">
+                <div class="detail-cell-label">Uses (reads)</div>
+                <div class="detail-cell-value" id="detail-uses"></div>
+              </div>
+              <div class="detail-cell">
+                <div class="detail-cell-label">Live-IN</div>
+                <div class="detail-cell-value" id="detail-live-in"></div>
+              </div>
+            </div>
+            <div class="detail-grid" style="margin-top:10px">
+              <div class="detail-cell" style="grid-column:1/-1">
+                <div class="detail-cell-label">Live-OUT (alive after this instruction)</div>
+                <div class="detail-cell-value" id="detail-live-out"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clean tab -->
+        <div class="tab-panel" id="panel-clean">
+          <div class="clean-box" id="clean-box"></div>
+        </div>
+
+        <!-- Liveness table -->
+        <div class="tab-panel" id="panel-live">
+          <div class="heatmap-wrap">
+            <table class="heatmap-table" id="live-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Instruction</th>
+                  <th>Defines</th>
+                  <th>Uses</th>
+                  <th>Live-IN</th>
+                  <th>Live-OUT</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="live-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CFG block view -->
+        <div class="tab-panel" id="panel-cfg">
+          <div class="cfg-wrap" id="cfg-wrap"></div>
+        </div>
+
+      </div><!-- /content-area -->
+    </div><!-- /panel-right -->
+
+  </main>
+</div><!-- /app -->
+
+<script>
+
+// ── Demo programs ──────────────────────────────────────────────────────────
+const DEMOS = {
+  1: `// Dead variables: b and unused_sum are never printed/returned
+a = 10;
+b = 20;
+c = a + 5;
+unused_sum = c + b;
+print(c);`,
+
+  2: `// Only 'result' is live at the end
+x = 3;
+y = 4;
+temp = x * x;
+result = temp + y * y;
+print(result);
+x = 99;`,
+
+  3: `// Loop with dead scratch variable
+i = 0;
+total = 0;
+discarded = 1000;
+while (i < 5) {
+    total = total + i;
+    i = i + 1;
+    scratch = i * 2;
+}
+print(total);`,
+
+  4: `// Dead assignments inside branching
+n = 42;
+flag = 0;
+debug = n * 2;
+if (n > 10) {
+    flag = 1;
+    tmp = n + 100;
+}
+print(flag);`
+};
+
+let currentData = null;
+let selectedRow = -1;
+
+// ── Load demo ──────────────────────────────────────────────────────────────
+function loadDemo(id) {
+  document.getElementById('code-editor').value = DEMOS[id];
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`demo${id}-btn`).classList.add('active');
+  runDCE();
+}
+
+// ── Run DCE via API ────────────────────────────────────────────────────────
+async function runDCE() {
+  const source = document.getElementById('code-editor').value.trim();
+  if (!source) return;
+
+  const btn = document.getElementById('run-btn');
+  document.getElementById('btn-icon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('btn-text').textContent = 'Analysing…';
+  btn.classList.add('loading');
+  document.getElementById('error-box').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/dce', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      showError(data.error);
+      return;
+    }
+
+    currentData = data;
+    selectedRow = -1;
+    render(data);
+    document.getElementById('welcome').style.display = 'none';
+    showTab(document.querySelector('.tab-btn.active').id.replace('tab-', ''));
+
+  } catch(e) {
+    showError('Cannot connect to server. Make sure server.py is running on :5000');
+  } finally {
+    document.getElementById('btn-icon').textContent = '▶';
+    document.getElementById('btn-text').textContent = 'Run DCE Analysis';
+    btn.classList.remove('loading');
+  }
+}
+
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = '⚠  ' + msg;
+  box.style.display = 'block';
+}
+
+// ── Main render ────────────────────────────────────────────────────────────
+function render(data) {
+  updateStats(data.stats);
+  renderTAC(data.instructions);
+  renderClean(data.instructions);
+  renderLivenessTable(data.instructions);
+  renderCFG(data.instructions);
+}
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function updateStats(s) {
+  animateCount('stat-total', s.total_before);
+  animateCount('stat-live',  s.total_after);
+  animateCount('stat-dead',  s.dead_count);
+  document.getElementById('stat-pct').textContent = s.pct_eliminated + '%';
+
+  const total = s.total_before || 1;
+  setTimeout(() => {
+    document.getElementById('bar-live').style.width = (s.total_after / total * 100) + '%';
+    document.getElementById('bar-dead').style.width = (s.dead_count  / total * 100) + '%';
+    document.getElementById('bar-pct').style.width  = s.pct_eliminated + '%';
+    document.getElementById('bar-total').style.width = '100%';
+  }, 100);
+}
+
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  let current = 0;
+  const step = Math.ceil(target / 20);
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current;
+    if (current >= target) clearInterval(timer);
+  }, 25);
+}
+
+// ── TAC view ───────────────────────────────────────────────────────────────
+function renderTAC(instrs) {
+  const list = document.getElementById('tac-list');
+  list.innerHTML = '';
+
+  instrs.forEach((instr, i) => {
+    const isLabel = instr.kind === 'label';
+    const isCtrl  = instr.is_control_flow && !isLabel;
+
+    let rowClass = 'tac-row';
+    if (isLabel)     rowClass += ' label-row';
+    else if (isCtrl) rowClass += ' control';
+    else if (instr.dead) rowClass += ' dead';
+    else             rowClass += ' live';
+
+    let badge = '';
+    if (isLabel)     badge = '<span class="row-badge badge-label">LABEL</span>';
+    else if (isCtrl) badge = '<span class="row-badge badge-ctrl">CTRL</span>';
+    else if (instr.dead) badge = '<span class="row-badge badge-dead">DEAD</span>';
+    else             badge = '<span class="row-badge badge-live">LIVE</span>';
+
+    const row = document.createElement('div');
+    row.className = rowClass;
+    row.style.setProperty('--i', i);
+    row.innerHTML = `
+      <span class="row-idx">${i}</span>
+      <span class="row-dot"></span>
+      <span class="row-code">${escapeHtml(instr.text)}</span>
+      ${badge}
+    `;
+    row.addEventListener('click', () => selectRow(i, instr));
+    list.appendChild(row);
+  });
+}
+
+function selectRow(idx, instr) {
+  // Clear previous selection
+  document.querySelectorAll('.tac-row').forEach(r => r.classList.remove('selected'));
+  document.querySelectorAll('.tac-row')[idx]?.classList.add('selected');
+  selectedRow = idx;
+
+  const panel = document.getElementById('detail-panel');
+  panel.style.display = 'block';
+  document.getElementById('detail-instr-text').textContent = instr.text;
+
+  const def = instr.defines ? `<span class="var-chip chip-def">${escapeHtml(instr.defines)}</span>` : `<span class="chip-empty">none</span>`;
+  document.getElementById('detail-defines').innerHTML = def;
+
+  const uses = instr.uses.length
+    ? instr.uses.map(u => `<span class="var-chip chip-use">${escapeHtml(u)}</span>`).join('')
+    : '<span class="chip-empty">none</span>';
+  document.getElementById('detail-uses').innerHTML = uses;
+
+  const lin = instr.live_in.length
+    ? instr.live_in.map(v => `<span class="var-chip chip-live">${escapeHtml(v)}</span>`).join('')
+    : '<span class="chip-empty">∅</span>';
+  document.getElementById('detail-live-in').innerHTML = lin;
+
+  const lout = instr.live_out.length
+    ? instr.live_out.map(v => `<span class="var-chip chip-live">${escapeHtml(v)}</span>`).join('')
+    : '<span class="chip-empty">∅</span>';
+  document.getElementById('detail-live-out').innerHTML = lout;
+}
+
+// ── Clean output ───────────────────────────────────────────────────────────
+function renderClean(instrs) {
+  const box = document.getElementById('clean-box');
+  const liveInstrs = instrs.filter(i => !i.dead);
+  let lineNum = 1;
+  box.innerHTML = liveInstrs.map(instr => {
+    const isLabel = instr.kind === 'label';
+    const color = isLabel ? 'var(--purple-bright)' : instr.is_control_flow ? 'var(--amber)' : 'var(--green)';
+    const indent = isLabel ? '' : '    ';
+    const line = `
+      <div class="clean-line">
+        <span class="clean-line-num">${isLabel ? '' : lineNum++}</span>
+        <span style="color:${color}">${indent}${escapeHtml(instr.text)}</span>
+      </div>`;
+    return line;
+  }).join('');
+}
+
+// ── Liveness table ─────────────────────────────────────────────────────────
+function renderLivenessTable(instrs) {
+  const tbody = document.getElementById('live-tbody');
+  tbody.innerHTML = instrs.map((instr, i) => {
+    const isDead = instr.dead;
+    const rowClass = isDead ? 'hm-dead-row' : '';
+    const defHtml = instr.defines
+      ? `<span class="var-chip chip-def" style="font-size:.67rem">${escapeHtml(instr.defines)}</span>`
+      : '—';
+    const useHtml = instr.uses.length
+      ? instr.uses.map(u => `<span class="var-chip chip-use" style="font-size:.67rem">${escapeHtml(u)}</span>`).join(' ')
+      : '—';
+    const linHtml = instr.live_in.length
+      ? `<div class="hm-vars">${instr.live_in.map(v => `<span class="hm-chip">${escapeHtml(v)}</span>`).join('')}</div>`
+      : '<span style="color:var(--text-lo)">∅</span>';
+    const loutHtml = instr.live_out.length
+      ? `<div class="hm-vars">${instr.live_out.map(v => `<span class="hm-chip">${escapeHtml(v)}</span>`).join('')}</div>`
+      : '<span style="color:var(--text-lo)">∅</span>';
+    const status = isDead
+      ? '<span class="row-badge badge-dead">DEAD</span>'
+      : instr.kind === 'label'
+        ? '<span class="row-badge badge-label">LABEL</span>'
+        : '<span class="row-badge badge-live">LIVE</span>';
+    return `
+      <tr class="${rowClass}">
+        <td class="hm-idx">${i}</td>
+        <td class="hm-instr">${escapeHtml(instr.text)}</td>
+        <td class="hm-cell">${defHtml}</td>
+        <td class="hm-cell">${useHtml}</td>
+        <td class="hm-cell">${linHtml}</td>
+        <td class="hm-cell">${loutHtml}</td>
+        <td class="hm-cell">${status}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ── CFG Block view ─────────────────────────────────────────────────────────
+function renderCFG(instrs) {
+  const wrap = document.getElementById('cfg-wrap');
+  // Split into basic blocks at labels and after gotos
+  const blocks = [];
+  let current = { label: 'Entry', instrs: [] };
+  for (const instr of instrs) {
+    if (instr.kind === 'label') {
+      if (current.instrs.length > 0) blocks.push(current);
+      current = { label: instr.text, instrs: [] };
+    } else {
+      current.instrs.push(instr);
+    }
+  }
+  if (current.instrs.length > 0 || current.label !== 'Entry') blocks.push(current);
+
+  wrap.innerHTML = blocks.map((block, bi) => {
+    const instrHtml = block.instrs.map(instr => {
+      const cls = instr.dead ? 'dead-instr' : 'live-instr';
+      return `<div class="cfg-instr ${cls}">${escapeHtml(instr.text)}</div>`;
+    }).join('');
+    const arrow = bi < blocks.length - 1 ? '<div class="cfg-arrow">↓</div>' : '';
+    return `
+      <div class="cfg-block" style="--i:${bi}">
+        <div class="cfg-block-title">Block ${bi}: ${escapeHtml(block.label)}</div>
+        <div class="cfg-instrs">${instrHtml || '<span style="color:var(--text-lo);font-size:0.75rem">empty</span>'}</div>
+      </div>
+      ${arrow}`;
+  }).join('');
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function showTab(name) {
+  if (!currentData) return;
+  document.getElementById('welcome').style.display = 'none';
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'tac' && selectedRow >= 0) {
+    // restore detail
+    document.getElementById('detail-panel').style.display = 'block';
+  }
+}
+
+// ── Util ───────────────────────────────────────────────────────────────────
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Keyboard shortcut: Ctrl+Enter ─────────────────────────────────────────
+document.getElementById('code-editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runDCE();
+  }
+});
+
+// ── Auto-load demo 1 on page load ─────────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => loadDemo(1), 300);
+});
+
+</script>
+</body>
+</html>
