@@ -366,7 +366,241 @@ class DeadCodeEliminator:
 
 
 # ──────────────────────────────────────────────
-# 4.  PUBLIC API
+# 4.  OPTIMIZATION PASSES
+# ──────────────────────────────────────────────
+
+import operator as _op
+
+_ARITH = {
+    '+': _op.add,
+    '-': _op.sub,
+    '*': _op.mul,
+    '/': _op.truediv,
+}
+
+def _try_eval(op1, operator, op2):
+    """Return (True, result_str) if both operands are numeric constants."""
+    if _is_const(op1) and _is_const(op2) and operator in _ARITH:
+        try:
+            val = _ARITH[operator](float(op1), float(op2))
+            # Keep as int if whole number
+            return True, str(int(val)) if val == int(val) else str(round(val, 8))
+        except ZeroDivisionError:
+            return False, None
+    return False, None
+
+
+class ConstantFolder:
+    """
+    Constant Folding: replace  x = 3 + 5  with  x = 8.
+    Works on 'assign' instructions where both operands are numeric literals.
+    """
+
+    def run(self, instructions: list) -> list:
+        changes = []
+        for instr in instructions:
+            original = str(instr)
+            if instr.kind == 'assign' and instr.op1 and instr.op2 and instr.operator:
+                ok, val = _try_eval(instr.op1, instr.operator, instr.op2)
+                if ok:
+                    instr.kind = 'copy'
+                    instr.op1 = val
+                    instr.operator = None
+                    instr.op2 = None
+                    changes.append({'before': original, 'after': str(instr), 'changed': True})
+                    continue
+            changes.append({'before': original, 'after': str(instr), 'changed': False})
+        return changes
+
+
+class ConstantPropagator:
+    """
+    Constant Propagation: track variables that hold a known constant value and
+    substitute them at use-sites.  e.g.  x=3; y=x+2  →  y=3+2.
+    """
+
+    def run(self, instructions: list) -> list:
+        const_map: dict = {}   # var -> constant string
+        changes = []
+        for instr in instructions:
+            original = str(instr)
+            changed = False
+
+            # Substitute known constants into operands
+            if instr.op1 and not _is_const(instr.op1) and instr.op1 in const_map:
+                instr.op1 = const_map[instr.op1]
+                changed = True
+            if instr.op2 and not _is_const(instr.op2) and instr.op2 in const_map:
+                instr.op2 = const_map[instr.op2]
+                changed = True
+
+            # After substitution, fold if possible
+            if instr.kind == 'assign' and instr.op1 and instr.op2 and instr.operator:
+                ok, val = _try_eval(instr.op1, instr.operator, instr.op2)
+                if ok:
+                    instr.kind = 'copy'
+                    instr.op1 = val
+                    instr.operator = None
+                    instr.op2 = None
+                    changed = True
+
+            # Record if this instruction defines a constant
+            if instr.kind == 'copy' and instr.result and _is_const(instr.op1):
+                const_map[instr.result] = instr.op1
+            elif instr.defines():
+                # Non-constant assignment — invalidate
+                const_map.pop(instr.defines(), None)
+
+            changes.append({'before': original, 'after': str(instr), 'changed': changed})
+        return changes
+
+
+class CSEliminator:
+    """
+    Common Subexpression Elimination: if the same expression  a op b  was
+    already computed into some variable, reuse that variable instead of
+    recomputing it.
+    """
+
+    def run(self, instructions: list) -> list:
+        # expr_map: (op1, operator, op2) -> result_var
+        expr_map: dict = {}
+        # which variables have been invalidated (reassigned)
+        changes = []
+        for instr in instructions:
+            original = str(instr)
+            changed = False
+
+            if instr.kind == 'assign' and instr.op1 and instr.op2 and instr.operator:
+                key = (instr.op1, instr.operator, instr.op2)
+                if key in expr_map:
+                    # Replace with copy from previously computed variable
+                    prev_var = expr_map[key]
+                    instr.kind = 'copy'
+                    instr.op1 = prev_var
+                    instr.operator = None
+                    instr.op2 = None
+                    changed = True
+                else:
+                    expr_map[key] = instr.result
+
+            # Invalidate expressions that use a reassigned variable
+            if instr.defines():
+                stale = [k for k in expr_map if instr.defines() in k]
+                for k in stale:
+                    del expr_map[k]
+
+            changes.append({'before': original, 'after': str(instr), 'changed': changed})
+        return changes
+
+
+class AlgebraicSimplifier:
+    """
+    Algebraic Simplification: apply identities such as
+      x + 0  →  x
+      x * 1  →  x
+      x * 0  →  0
+      x - 0  →  x
+      x / 1  →  x
+      x - x  →  0
+      x * x  stays (no simplification)
+    """
+
+    IDENTITIES = [
+        # (op, position_of_zero/one, neutral_val_or_action)
+        # Each rule: (operator, check_fn(op1,op2)) -> result_str or None
+    ]
+
+    def _simplify(self, op1, operator, op2):
+        """Return simplified op1 string, or None if no simplification."""
+        if operator == '+':
+            if op2 == '0': return op1
+            if op1 == '0': return op2
+        if operator == '-':
+            if op2 == '0': return op1
+            if op1 == op2 and not _is_const(op1): return '0'
+        if operator == '*':
+            if op2 == '1': return op1
+            if op1 == '1': return op2
+            if op2 == '0' or op1 == '0': return '0'
+        if operator == '/':
+            if op2 == '1': return op1
+            if op1 == '0': return '0'
+        return None
+
+    def run(self, instructions: list) -> list:
+        changes = []
+        for instr in instructions:
+            original = str(instr)
+            changed = False
+
+            if instr.kind == 'assign' and instr.op1 and instr.op2 and instr.operator:
+                simplified = self._simplify(instr.op1, instr.operator, instr.op2)
+                if simplified is not None:
+                    instr.kind = 'copy'
+                    instr.op1 = simplified
+                    instr.operator = None
+                    instr.op2 = None
+                    changed = True
+
+            changes.append({'before': original, 'after': str(instr), 'changed': changed})
+        return changes
+
+
+def run_optimization(source: str, pass_name: str) -> dict:
+    """
+    Run a named optimization pass on source code.
+    pass_name: 'cf' | 'cp' | 'cse' | 'alg'
+    Returns JSON-serializable result with before/after lines.
+    """
+    import copy as _copy
+
+    PASSES = {
+        'cf':  ConstantFolder,
+        'cp':  ConstantPropagator,
+        'cse': CSEliminator,
+        'alg': AlgebraicSimplifier,
+    }
+
+    if pass_name not in PASSES:
+        return {'error': f'Unknown pass: {pass_name}'}
+
+    try:
+        source = source.strip()
+        if not source:
+            return {'error': 'Empty source code.'}
+
+        parser = TACParser(source)
+        instructions = parser.parse()
+
+        # Deep-copy so we preserve the original text
+        original_texts = [str(i) for i in instructions]
+        instrs_copy = _copy.deepcopy(instructions)
+
+        optimizer = PASSES[pass_name]()
+        changes = optimizer.run(instrs_copy)
+
+        n_changed = sum(1 for c in changes if c['changed'])
+        total = len(changes)
+
+        return {
+            'lines': changes,
+            'stats': {
+                'total': total,
+                'changed': n_changed,
+                'unchanged': total - n_changed,
+                'pct_changed': round(n_changed / total * 100, 1) if total else 0,
+            }
+        }
+
+    except SyntaxError as e:
+        return {'error': f'Syntax error: {e}'}
+    except Exception as e:
+        return {'error': f'Internal error: {e}'}
+
+
+# ──────────────────────────────────────────────
+# 5.  PUBLIC API
 # ──────────────────────────────────────────────
 
 def run_dce(source: str) -> dict:
@@ -386,6 +620,104 @@ def run_dce(source: str) -> dict:
         dce.analyse_and_eliminate()
 
         return dce.to_json()
+
+    except SyntaxError as e:
+        return {"error": f"Syntax error: {e}"}
+    except Exception as e:
+        return {"error": f"Internal error: {e}"}
+
+
+def run_all_passes(source: str) -> dict:
+    """
+    Run the full optimization pipeline:
+      1. Constant Folding
+      2. Constant Propagation
+      3. Algebraic Simplification
+      4. Common Subexpression Elimination
+      5. Dead Code Elimination
+
+    Returns a JSON-serializable dict with:
+      - original_lines  : TAC before any optimization
+      - passes          : per-pass summary + diff
+      - final_lines     : TAC after all passes (only live instructions)
+      - stats           : overall reduction numbers
+    """
+    import copy as _copy
+
+    try:
+        source = source.strip()
+        if not source:
+            return {"error": "Empty source code."}
+
+        # ── Parse once ────────────────────────────────────
+        parser = TACParser(source)
+        base_instrs = parser.parse()
+        original_lines = [str(i) for i in base_instrs]
+
+        # ── Pipeline ──────────────────────────────────────
+        pipeline = [
+            ("Constant Folding",                   "cf",  ConstantFolder),
+            ("Constant Propagation",               "cp",  ConstantPropagator),
+            ("Algebraic Simplification",           "alg", AlgebraicSimplifier),
+            ("Common Subexpression Elimination",   "cse", CSEliminator),
+        ]
+
+        working = _copy.deepcopy(base_instrs)
+        passes_summary = []
+
+        for pass_name, pass_id, PassClass in pipeline:
+            snapshot_before = [str(i) for i in working]
+            instrs_copy = _copy.deepcopy(working)
+            changes = PassClass().run(instrs_copy)
+
+            n_changed = sum(1 for c in changes if c['changed'])
+            passes_summary.append({
+                "name": pass_name,
+                "id":   pass_id,
+                "total": len(changes),
+                "changed": n_changed,
+                "lines": changes,
+            })
+
+            # Use the mutated copies as the input to the next pass
+            working = instrs_copy
+
+        # ── DCE on the fully-optimised TAC ────────────────
+        dce = DeadCodeEliminator(working)
+        dce.analyse_and_eliminate()
+
+        # Final live lines only
+        final_lines = [str(i) for i in working if not i.dead]
+
+        # All lines with dead flag for side-by-side view
+        final_all = []
+        for instr in working:
+            final_all.append({
+                "text": str(instr),
+                "dead": instr.dead,
+                "is_control_flow": instr.kind in ('goto', 'ifgoto', 'label'),
+                "kind": instr.kind,
+            })
+
+        dead_count  = sum(1 for i in working if i.dead)
+        total_orig  = len(original_lines)
+        total_final = len(final_lines)
+        removed     = total_orig - total_final
+
+        return {
+            "original_lines": original_lines,
+            "passes": passes_summary,
+            "final_all": final_all,
+            "final_lines": final_lines,
+            "stats": {
+                "original_count":  total_orig,
+                "final_count":     total_final,
+                "removed":         removed,
+                "pct_reduced":     round(removed / total_orig * 100, 1) if total_orig else 0,
+                "total_optimized": sum(p["changed"] for p in passes_summary),
+                "dce_eliminated":  dead_count,
+            }
+        }
 
     except SyntaxError as e:
         return {"error": f"Syntax error: {e}"}

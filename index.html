@@ -49,6 +49,53 @@
       --shadow-glow: 0 0 40px rgba(124,58,237,0.25);
     }
 
+    /* ═══════════════════════════════════════════
+       LIGHT MODE OVERRIDES
+    ═══════════════════════════════════════════ */
+    body.light {
+      --bg-deep:    #f0f0f8;
+      --bg-surface: #f7f7fc;
+      --bg-card:    #ffffff;
+      --bg-card2:   #ececf5;
+      --bg-input:   #e8e8f2;
+
+      --border:     rgba(0,0,0,0.08);
+      --border-hi:  rgba(0,0,0,0.16);
+
+      --purple-bright: #6d28d9;
+      --purple-mid:    #5b21b6;
+      --purple-glow:   rgba(109,40,217,0.1);
+
+      --cyan:          #0891b2;
+      --cyan-glow:     rgba(8,145,178,0.12);
+
+      --green:         #059669;
+      --green-glow:    rgba(5,150,105,0.12);
+
+      --red:           #dc2626;
+      --red-glow:      rgba(220,38,38,0.12);
+
+      --amber:         #b45309;
+      --amber-glow:    rgba(180,83,9,0.12);
+
+      --text-hi:   #0f0f1a;
+      --text-mid:  #3a3a5c;
+      --text-lo:   #7a7a9a;
+
+      --shadow-card: 0 4px 32px rgba(0,0,0,0.10);
+      --shadow-glow: 0 0 40px rgba(109,40,217,0.15);
+    }
+
+    body.light::before {
+      background-image:
+        linear-gradient(rgba(109,40,217,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(109,40,217,0.04) 1px, transparent 1px);
+    }
+
+    body.light header {
+      background: rgba(240,240,248,0.85);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     html { scroll-behavior: smooth; }
@@ -120,6 +167,29 @@
     .badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%;
                      background: var(--purple-bright); animation: pulse 2s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── theme toggle button ───────────────────── */
+    .nav-right {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .theme-toggle {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--border-hi);
+      background: var(--bg-card);
+      color: var(--text-hi);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s ease;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .theme-toggle:hover {
+      background: var(--purple-glow);
+      border-color: var(--purple-bright);
+      transform: rotate(20deg) scale(1.1);
+      box-shadow: 0 0 16px var(--purple-glow);
+    }
 
     /* ── main layout ───────────────────────── */
     main {
@@ -484,6 +554,246 @@
     .tab-panel { display: none; animation: fadeInRow 0.3s ease; }
     .tab-panel.active { display: block; }
 
+    /* ── Optimization passes ─────────────────── */
+    .opt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 1100px) { .opt-grid { grid-template-columns: 1fr; } }
+
+    .opt-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .opt-card:hover { border-color: var(--border-hi); box-shadow: var(--shadow-card); }
+
+    .opt-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card2);
+    }
+    .opt-card-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.88rem; font-weight: 700; color: var(--text-hi);
+    }
+    .opt-card-icon { font-size: 20px; }
+    .opt-card-desc { font-size: 0.72rem; color: var(--text-lo); margin-top: 2px; }
+
+    .opt-run-btn {
+      padding: 7px 16px;
+      background: linear-gradient(135deg, var(--purple-mid), #1d4ed8);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; white-space: nowrap;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 12px rgba(124,58,237,0.3);
+    }
+    .opt-run-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,58,237,0.5); }
+    .opt-run-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    .opt-card-body { padding: 14px 18px; }
+
+    .opt-status-row {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }
+    .opt-stat-chip {
+      font-size: 0.72rem; font-weight: 600;
+      padding: 4px 10px; border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    .chip-total  { background: var(--bg-input); color: var(--text-mid); }
+    .chip-changed{ background: rgba(167,139,250,0.15); color: var(--purple-bright); border: 1px solid rgba(167,139,250,0.3); }
+    .chip-pct    { background: rgba(34,211,238,0.1); color: var(--cyan); border: 1px solid rgba(34,211,238,0.25); }
+
+    .opt-empty {
+      text-align: center; padding: 20px;
+      color: var(--text-lo); font-size: 0.8rem;
+    }
+
+    /* diff lines */
+    .diff-list { display: flex; flex-direction: column; gap: 3px; }
+    .diff-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      animation: fadeInRow 0.25s ease both;
+    }
+    .diff-row.changed {
+      background: rgba(167,139,250,0.08);
+      border: 1px solid rgba(167,139,250,0.2);
+    }
+    .diff-row.unchanged {
+      background: transparent;
+      border: 1px solid transparent;
+      opacity: 0.6;
+    }
+    .diff-before { color: var(--red); }
+    .diff-after  { color: var(--green); }
+    .diff-arrow  { color: var(--text-lo); font-size: 10px; }
+    .diff-eq { color: var(--text-lo); grid-column: 1 / -1; }
+
+    .opt-tag-missing {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.68rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(248,113,113,0.1); color: var(--red);
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+    .opt-tag-ok {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.68rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(52,211,153,0.1); color: var(--green);
+      border: 1px solid rgba(52,211,153,0.25);
+    }
+
+    /* ── Final output panel ────────────────── */
+    .final-run-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .final-run-bar h3 {
+      font-size: 1rem; font-weight: 700; color: var(--text-hi);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .final-big-btn {
+      padding: 10px 28px;
+      background: linear-gradient(135deg, #7c3aed, #0891b2);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 800;
+      cursor: pointer; letter-spacing: 0.03em;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .final-big-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.55); }
+    .final-big-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    /* pipeline stepper */
+    .pipeline-bar {
+      display: flex; align-items: center; gap: 0;
+      margin-bottom: 20px; overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .pipeline-step {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px; white-space: nowrap;
+      font-size: 0.75rem; font-weight: 600; color: var(--text-lo);
+      transition: all 0.3s;
+      position: relative;
+    }
+    .pipeline-step.done {
+      border-color: rgba(52,211,153,0.35);
+      background: rgba(52,211,153,0.06);
+      color: var(--green);
+    }
+    .pipeline-step.done .ps-count {
+      background: rgba(52,211,153,0.2); color: var(--green);
+    }
+    .pipeline-step.skipped {
+      border-color: var(--border);
+      color: var(--text-lo); opacity: 0.5;
+    }
+    .ps-icon { font-size: 16px; }
+    .ps-count {
+      font-size: 0.65rem; padding: 2px 7px; border-radius: 999px;
+      background: var(--bg-card2); color: var(--text-lo);
+      font-weight: 700;
+    }
+    .pipeline-arrow {
+      color: var(--text-lo); font-size: 18px; padding: 0 4px; flex-shrink: 0;
+    }
+
+    /* summary stat bar */
+    .final-stat-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 900px) { .final-stat-grid { grid-template-columns: repeat(2,1fr); } }
+    .final-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px; text-align: center;
+    }
+    .fsc-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+                 text-transform: uppercase; color: var(--text-lo); margin-bottom: 6px; }
+    .fsc-value { font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+                 letter-spacing: -0.03em; line-height: 1; }
+    .fsc-sub   { font-size: 0.68rem; color: var(--text-lo); margin-top: 4px; }
+    .fsc-v1 { color: var(--text-hi); }
+    .fsc-v2 { color: var(--purple-bright); }
+    .fsc-v3 { color: var(--red); }
+    .fsc-v4 { color: var(--cyan); }
+
+    /* side-by-side */
+    .final-split {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    @media (max-width: 900px) { .final-split { grid-template-columns: 1fr; } }
+    .final-pane {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .final-pane-header {
+      padding: 10px 16px;
+      background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .final-pane-body {
+      padding: 12px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; line-height: 2;
+      overflow-y: auto; max-height: 380px;
+    }
+    .fline { display: flex; gap: 12px; align-items: baseline; }
+    .fline-num { color: var(--text-lo); min-width: 24px; text-align: right; font-size: 0.65rem; }
+    .fline-orig  { color: var(--text-mid); }
+    .fline-dead  { color: var(--red); text-decoration: line-through; opacity: 0.5; }
+    .fline-live  { color: var(--green); }
+    .fline-ctrl  { color: var(--amber); }
+    .fline-label { color: var(--purple-bright); font-weight: 600; }
+
+    /* pass accordion */
+    .pass-accordion { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .pass-row {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .pass-row-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600; color: var(--text-mid);
+      user-select: none;
+    }
+    .pass-row-header:hover { color: var(--text-hi); }
+    .pass-row-chevron { margin-left: auto; transition: transform 0.2s; color: var(--text-lo); }
+    .pass-row.open .pass-row-chevron { transform: rotate(90deg); }
+    .pass-row-body { display: none; padding: 0 16px 12px; }
+    .pass-row.open .pass-row-body { display: block; }
+
   </style>
 </head>
 <body>
@@ -502,7 +812,10 @@
         <span>Dead Code Elimination · Three-Address Code · Liveness Analysis</span>
       </div>
     </div>
-    <div class="badge">Live Analysis Engine</div>
+    <div class="nav-right">
+      <div class="badge">Live Analysis Engine</div>
+      <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle light / dark mode" aria-label="Toggle theme">🌙</button>
+    </div>
   </header>
 
   <!-- ═══════════════ MAIN ═══════════════ -->
@@ -624,6 +937,8 @@ print(y);"
         <button class="tab-btn"        id="tab-clean"  onclick="showTab('clean')">✅ Clean Output</button>
         <button class="tab-btn"        id="tab-live"   onclick="showTab('live')">📊 Liveness Table</button>
         <button class="tab-btn"        id="tab-cfg"    onclick="showTab('cfg')">🗂️ Block View</button>
+        <button class="tab-btn"        id="tab-opt"    onclick="showTab('opt')">⚡ Optimizations</button>
+        <button class="tab-btn"        id="tab-final"  onclick="showTab('final')">🏁 Final Output</button>
       </div>
 
       <!-- Content -->
@@ -693,6 +1008,173 @@ print(y);"
         <div class="tab-panel" id="panel-cfg">
           <div class="cfg-wrap" id="cfg-wrap"></div>
         </div>
+
+        <!-- Optimizations tab -->
+        <div class="tab-panel" id="panel-opt">
+          <div class="opt-grid">
+
+            <!-- Constant Folding -->
+            <div class="opt-card" id="opt-card-cf">
+              <div class="opt-card-header">
+                <div>
+                  <div class="opt-card-title"><span class="opt-card-icon">🔢</span> Constant Folding
+                    <span class="opt-tag-missing" id="opt-status-cf">❌ Not run</span>
+                  </div>
+                  <div class="opt-card-desc">Evaluate constant expressions at compile time &mdash; <code>3 + 5</code> &rarr; <code>8</code></div>
+                </div>
+                <button class="opt-run-btn" id="opt-btn-cf" onclick="runOpt('cf')">▶ Run</button>
+              </div>
+              <div class="opt-card-body">
+                <div class="opt-status-row" id="opt-stats-cf" style="display:none">
+                  <span class="opt-stat-chip chip-total" id="opt-total-cf"></span>
+                  <span class="opt-stat-chip chip-changed" id="opt-changed-cf"></span>
+                  <span class="opt-stat-chip chip-pct" id="opt-pct-cf"></span>
+                </div>
+                <div class="diff-list" id="opt-diff-cf"><div class="opt-empty">Run the pass to see results</div></div>
+              </div>
+            </div>
+
+            <!-- Constant Propagation -->
+            <div class="opt-card" id="opt-card-cp">
+              <div class="opt-card-header">
+                <div>
+                  <div class="opt-card-title"><span class="opt-card-icon">🔀</span> Constant Propagation
+                    <span class="opt-tag-missing" id="opt-status-cp">❌ Not run</span>
+                  </div>
+                  <div class="opt-card-desc">Replace variable references with their known constant values</div>
+                </div>
+                <button class="opt-run-btn" id="opt-btn-cp" onclick="runOpt('cp')">▶ Run</button>
+              </div>
+              <div class="opt-card-body">
+                <div class="opt-status-row" id="opt-stats-cp" style="display:none">
+                  <span class="opt-stat-chip chip-total" id="opt-total-cp"></span>
+                  <span class="opt-stat-chip chip-changed" id="opt-changed-cp"></span>
+                  <span class="opt-stat-chip chip-pct" id="opt-pct-cp"></span>
+                </div>
+                <div class="diff-list" id="opt-diff-cp"><div class="opt-empty">Run the pass to see results</div></div>
+              </div>
+            </div>
+
+            <!-- CSE -->
+            <div class="opt-card" id="opt-card-cse">
+              <div class="opt-card-header">
+                <div>
+                  <div class="opt-card-title"><span class="opt-card-icon">♻️</span> Common Subexpression Elimination
+                    <span class="opt-tag-missing" id="opt-status-cse">❌ Not run</span>
+                  </div>
+                  <div class="opt-card-desc">Reuse previously computed expressions instead of recomputing them</div>
+                </div>
+                <button class="opt-run-btn" id="opt-btn-cse" onclick="runOpt('cse')">▶ Run</button>
+              </div>
+              <div class="opt-card-body">
+                <div class="opt-status-row" id="opt-stats-cse" style="display:none">
+                  <span class="opt-stat-chip chip-total" id="opt-total-cse"></span>
+                  <span class="opt-stat-chip chip-changed" id="opt-changed-cse"></span>
+                  <span class="opt-stat-chip chip-pct" id="opt-pct-cse"></span>
+                </div>
+                <div class="diff-list" id="opt-diff-cse"><div class="opt-empty">Run the pass to see results</div></div>
+              </div>
+            </div>
+
+            <!-- Algebraic Simplification -->
+            <div class="opt-card" id="opt-card-alg">
+              <div class="opt-card-header">
+                <div>
+                  <div class="opt-card-title"><span class="opt-card-icon">✳️</span> Algebraic Simplification
+                    <span class="opt-tag-missing" id="opt-status-alg">❌ Not run</span>
+                  </div>
+                  <div class="opt-card-desc">Apply identities: <code>x*1&rarr;x</code>, <code>x+0&rarr;x</code>, <code>x*0&rarr;0</code>, <code>x-x&rarr;0</code></div>
+                </div>
+                <button class="opt-run-btn" id="opt-btn-alg" onclick="runOpt('alg')">▶ Run</button>
+              </div>
+              <div class="opt-card-body">
+                <div class="opt-status-row" id="opt-stats-alg" style="display:none">
+                  <span class="opt-stat-chip chip-total" id="opt-total-alg"></span>
+                  <span class="opt-stat-chip chip-changed" id="opt-changed-alg"></span>
+                  <span class="opt-stat-chip chip-pct" id="opt-pct-alg"></span>
+                </div>
+                <div class="diff-list" id="opt-diff-alg"><div class="opt-empty">Run the pass to see results</div></div>
+              </div>
+            </div>
+
+          </div><!-- /opt-grid -->
+        </div><!-- /panel-opt -->
+
+        <!-- Final Output tab -->
+        <div class="tab-panel" id="panel-final">
+
+          <!-- Top action bar -->
+          <div class="final-run-bar">
+            <h3>🏁 Full Optimization Pipeline
+              <span style="font-size:0.72rem;font-weight:400;color:var(--text-lo)">
+                CF → CP → Algebraic → CSE → DCE
+              </span>
+            </h3>
+            <button class="final-big-btn" id="final-run-btn" onclick="runAllPasses()">
+              <span id="final-btn-icon">▶</span>
+              <span id="final-btn-text">Run All &amp; Show Final Output</span>
+            </button>
+          </div>
+
+          <!-- Pipeline stepper (hidden until run) -->
+          <div class="pipeline-bar" id="pipeline-bar" style="display:none">
+            <div class="pipeline-step" id="ps-cf"><span class="ps-icon">🔢</span> CF <span class="ps-count" id="ps-count-cf">0</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" id="ps-cp"><span class="ps-icon">🔀</span> CP <span class="ps-count" id="ps-count-cp">0</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" id="ps-alg"><span class="ps-icon">✳️</span> Alg <span class="ps-count" id="ps-count-alg">0</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" id="ps-cse"><span class="ps-icon">♻️</span> CSE <span class="ps-count" id="ps-count-cse">0</span></div>
+            <div class="pipeline-arrow">→</div>
+            <div class="pipeline-step" id="ps-dce"><span class="ps-icon">🧹</span> DCE <span class="ps-count" id="ps-count-dce">0</span></div>
+          </div>
+
+          <!-- Summary stats (hidden until run) -->
+          <div class="final-stat-grid" id="final-stats" style="display:none">
+            <div class="final-stat-card">
+              <div class="fsc-label">Original Instructions</div>
+              <div class="fsc-value fsc-v1" id="fs-orig">—</div>
+              <div class="fsc-sub">before any pass</div>
+            </div>
+            <div class="final-stat-card">
+              <div class="fsc-label">Optimized by Passes</div>
+              <div class="fsc-value fsc-v2" id="fs-opt">—</div>
+              <div class="fsc-sub">instructions simplified</div>
+            </div>
+            <div class="final-stat-card">
+              <div class="fsc-label">Eliminated by DCE</div>
+              <div class="fsc-value fsc-v3" id="fs-dce">—</div>
+              <div class="fsc-sub">dead assignments removed</div>
+            </div>
+            <div class="final-stat-card">
+              <div class="fsc-label">Final Instructions</div>
+              <div class="fsc-value fsc-v4" id="fs-final">—</div>
+              <div class="fsc-sub" id="fs-pct-sub">after full pipeline</div>
+            </div>
+          </div>
+
+          <!-- Per-pass accordion (hidden until run) -->
+          <div class="pass-accordion" id="pass-accordion" style="display:none"></div>
+
+          <!-- Side-by-side view (hidden until run) -->
+          <div class="final-split" id="final-split" style="display:none">
+            <div class="final-pane">
+              <div class="final-pane-header" style="color:var(--text-lo)">
+                📜 Original TAC
+                <span style="margin-left:auto;font-size:0.68rem" id="final-orig-count"></span>
+              </div>
+              <div class="final-pane-body" id="final-orig-body"></div>
+            </div>
+            <div class="final-pane">
+              <div class="final-pane-header" style="color:var(--green)">
+                ✅ Optimized Output
+                <span style="margin-left:auto;font-size:0.68rem" id="final-opt-count"></span>
+              </div>
+              <div class="final-pane-body" id="final-opt-body"></div>
+            </div>
+          </div>
+
+        </div><!-- /panel-final -->
 
       </div><!-- /content-area -->
     </div><!-- /panel-right -->
@@ -1005,6 +1487,244 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
+// ── Optimization passes ───────────────────────────────────────────────────
+async function runOpt(passId) {
+  const source = document.getElementById('code-editor').value.trim();
+  if (!source) { alert('Please write or load code first.'); return; }
+
+  const btn = document.getElementById(`opt-btn-${passId}`);
+  btn.textContent = '⏳ Running…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/api/optimize/${passId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById(`opt-diff-${passId}`).innerHTML =
+        `<div class="opt-empty" style="color:var(--red)">⚠ ${escapeHtml(data.error)}</div>`;
+      return;
+    }
+
+    renderOptResult(passId, data);
+  } catch(e) {
+    document.getElementById(`opt-diff-${passId}`).innerHTML =
+      `<div class="opt-empty" style="color:var(--red)">⚠ Cannot reach server</div>`;
+  } finally {
+    btn.textContent = '▶ Run';
+    btn.disabled = false;
+  }
+}
+
+function renderOptResult(passId, data) {
+  const { lines, stats } = data;
+
+  // Update status badge
+  const statusEl = document.getElementById(`opt-status-${passId}`);
+  if (stats.changed > 0) {
+    statusEl.className = 'opt-tag-ok';
+    statusEl.textContent = `✅ ${stats.changed} optimized`;
+  } else {
+    statusEl.className = 'opt-tag-ok';
+    statusEl.textContent = '✅ No changes needed';
+  }
+
+  // Update stat chips
+  const statsRow = document.getElementById(`opt-stats-${passId}`);
+  statsRow.style.display = 'flex';
+  document.getElementById(`opt-total-${passId}`).textContent   = `${stats.total} instructions`;
+  document.getElementById(`opt-changed-${passId}`).textContent = `${stats.changed} changed`;
+  document.getElementById(`opt-pct-${passId}`).textContent     = `${stats.pct_changed}% optimized`;
+
+  // Build diff view
+  const diffEl = document.getElementById(`opt-diff-${passId}`);
+  if (lines.length === 0) {
+    diffEl.innerHTML = '<div class="opt-empty">No instructions generated</div>';
+    return;
+  }
+
+  diffEl.innerHTML = lines.map((line, i) => {
+    if (!line.changed) {
+      return `<div class="diff-row unchanged" style="--i:${i}">
+        <span class="diff-eq">${escapeHtml(line.before)}</span>
+      </div>`;
+    }
+    return `<div class="diff-row changed" style="--i:${i}">
+      <span class="diff-before">${escapeHtml(line.before)}</span>
+      <span class="diff-arrow">→</span>
+      <span class="diff-after">${escapeHtml(line.after)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Final Output (all passes pipeline) ─────────────────────────────────────
+async function runAllPasses() {
+  const source = document.getElementById('code-editor').value.trim();
+  if (!source) { alert('Please write or load code first.'); return; }
+
+  const btn  = document.getElementById('final-run-btn');
+  const icon = document.getElementById('final-btn-icon');
+  const text = document.getElementById('final-btn-text');
+  icon.innerHTML = '<div class="spinner"></div>';
+  text.textContent = 'Running pipeline…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      alert('⚠ ' + data.error);
+      return;
+    }
+
+    renderFinalOutput(data);
+  } catch(e) {
+    alert('⚠ Cannot reach server. Is server.py running?');
+  } finally {
+    icon.textContent = '▶';
+    text.textContent = 'Run All & Show Final Output';
+    btn.disabled = false;
+  }
+}
+
+function renderFinalOutput(data) {
+  const { original_lines, passes, final_all, final_lines, stats } = data;
+
+  // ─ Pipeline stepper
+  const bar = document.getElementById('pipeline-bar');
+  bar.style.display = 'flex';
+  passes.forEach(p => {
+    const el = document.getElementById(`ps-${p.id}`);
+    el.classList.toggle('done', p.changed > 0);
+    el.classList.toggle('skipped', p.changed === 0);
+    document.getElementById(`ps-count-${p.id}`).textContent =
+      p.changed > 0 ? `+${p.changed}` : '—';
+  });
+  const dceSt = document.getElementById('ps-dce');
+  dceSt.classList.add(stats.dce_eliminated > 0 ? 'done' : 'skipped');
+  document.getElementById('ps-count-dce').textContent =
+    stats.dce_eliminated > 0 ? `-${stats.dce_eliminated}` : '—';
+
+  // ─ Summary stats
+  const sg = document.getElementById('final-stats');
+  sg.style.display = 'grid';
+  document.getElementById('fs-orig').textContent  = stats.original_count;
+  document.getElementById('fs-opt').textContent   = stats.total_optimized;
+  document.getElementById('fs-dce').textContent   = stats.dce_eliminated;
+  document.getElementById('fs-final').textContent = stats.final_count;
+  document.getElementById('fs-pct-sub').textContent =
+    `${stats.pct_reduced}% size reduction`;
+
+  // ─ Per-pass accordion
+  const acc = document.getElementById('pass-accordion');
+  acc.style.display = 'flex';
+  const PASS_ICONS = { cf: '🔢', cp: '🔀', alg: '✳️', cse: '♻️' };
+  acc.innerHTML = passes.map((p, pi) => {
+    const changed = p.lines.filter(l => l.changed);
+    const statusColor = p.changed > 0 ? 'var(--green)' : 'var(--text-lo)';
+    const diffRows = p.lines.map((line, i) => {
+      if (!line.changed) {
+        return `<div class="diff-row unchanged" style="--i:${i}">
+          <span class="diff-eq">${escapeHtml(line.before)}</span>
+        </div>`;
+      }
+      return `<div class="diff-row changed" style="--i:${i}">
+        <span class="diff-before">${escapeHtml(line.before)}</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-after">${escapeHtml(line.after)}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="pass-row" id="pr-${p.id}">
+      <div class="pass-row-header" onclick="togglePassRow('${p.id}')">
+        <span>${PASS_ICONS[p.id] || '⚙️'}</span>
+        <span>${p.name}</span>
+        <span class="opt-stat-chip chip-changed" style="color:${statusColor}">
+          ${p.changed > 0 ? p.changed + ' changed' : 'No changes'}
+        </span>
+        <span class="opt-stat-chip chip-total">${p.total} instructions</span>
+        <span class="pass-row-chevron">▶</span>
+      </div>
+      <div class="pass-row-body">
+        <div class="diff-list">${diffRows}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Open first pass that had changes
+  const firstChanged = passes.find(p => p.changed > 0);
+  if (firstChanged) {
+    const el = document.getElementById(`pr-${firstChanged.id}`);
+    if (el) el.classList.add('open');
+  }
+
+  // ─ Side-by-side
+  document.getElementById('final-split').style.display = 'grid';
+
+  // Original pane
+  document.getElementById('final-orig-count').textContent = original_lines.length + ' lines';
+  document.getElementById('final-orig-body').innerHTML = original_lines.map((ln, i) =>
+    `<div class="fline">
+       <span class="fline-num">${i + 1}</span>
+       <span class="fline-orig">${escapeHtml(ln)}</span>
+     </div>`
+  ).join('');
+
+  // Optimized pane (final_all wraps: dead struck-out, live green)
+  document.getElementById('final-opt-count').textContent = final_lines.length + ' lines';
+  let liveNum = 1;
+  document.getElementById('final-opt-body').innerHTML = final_all.map(instr => {
+    if (instr.dead) {
+      return `<div class="fline">
+        <span class="fline-num"></span>
+        <span class="fline-dead">${escapeHtml(instr.text)}</span>
+      </div>`;
+    }
+    const cls = instr.kind === 'label' ? 'fline-label'
+               : instr.is_control_flow ? 'fline-ctrl'
+               : 'fline-live';
+    const num = instr.kind === 'label' ? '' : liveNum++;
+    return `<div class="fline">
+      <span class="fline-num">${num}</span>
+      <span class="${cls}">${escapeHtml(instr.text)}</span>
+    </div>`;
+  }).join('');
+}
+
+function togglePassRow(id) {
+  const el = document.getElementById(`pr-${id}`);
+  if (el) el.classList.toggle('open');
+}
+
+// ── Theme toggle ───────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  const btn = document.getElementById('theme-toggle-btn');
+  btn.textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('dce-theme', isLight ? 'light' : 'dark');
+}
+
+// Restore saved theme preference
+(function() {
+  const saved = localStorage.getItem('dce-theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    // btn will be set after DOM is ready
+    window.addEventListener('load', () => {
+      document.getElementById('theme-toggle-btn').textContent = '☀️';
+    });
+  }
+})();
 
 // ── Keyboard shortcut: Ctrl+Enter ─────────────────────────────────────────
 document.getElementById('code-editor').addEventListener('keydown', e => {
