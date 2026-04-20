@@ -7,12 +7,16 @@ This module:
   3. Runs backward liveness analysis
   4. Eliminates dead assignments (variables assigned but never used)
   5. Returns structured JSON output for web visualization
+  6. Dead Code Attribution via Leave-One-Out (LOO) scoring (Section 4.2.1)
+  7. LLM Structured Output via Gemini API (Section 4.2.2)
 """
 
 from dataclasses import dataclass, field
 from typing import Optional
 import re
 import json
+import os
+import copy as _deepcopy_module
 
 
 # ──────────────────────────────────────────────
@@ -723,6 +727,296 @@ def run_all_passes(source: str) -> dict:
         return {"error": f"Syntax error: {e}"}
     except Exception as e:
         return {"error": f"Internal error: {e}"}
+
+
+# ──────────────────────────────────────────────
+# 6.  DEAD CODE ATTRIBUTION  (Section 4.2.1)
+# ──────────────────────────────────────────────
+
+def run_attribution(source: str) -> dict:
+    """
+    Dead Code Attribution via Leave-One-Out (LOO) strategy.
+
+    For each TAC instruction i:
+      - Compute f(C)  : dead-code probability of full program
+      - Remove line i -> C_{-i}
+      - Compute f(C_{-i}) : dead-code probability without line i
+      - attribution_i = max(f(C) - f(C_{-i}), 0)
+
+    "Dead-code probability" is defined as:
+        dead_count / total_instructions
+    for a given instruction set after DCE liveness analysis.
+
+    Returns JSON-serializable dict with per-line attribution scores.
+    """
+    try:
+        source = source.strip()
+        if not source:
+            return {"error": "Empty source code."}
+
+        # ── Parse the full program ─────────────────────────────
+        parser = TACParser(source)
+        full_instrs = parser.parse()
+
+        if not full_instrs:
+            return {"error": "No instructions generated."}
+
+        # ── f(C): baseline dead-code probability ───────────────
+        def dce_score(instrs):
+            """Return fraction of instructions that are dead after liveness."""
+            if not instrs:
+                return 0.0
+            working = _deepcopy_module.deepcopy(instrs)
+            dce = DeadCodeEliminator(working)
+            dce.analyse_and_eliminate()
+            dead = sum(1 for i in working if i.dead)
+            return dead / len(working)
+
+        baseline = dce_score(full_instrs)
+
+        # ── LOO: remove each instruction one at a time ─────────
+        attributions = []
+        for idx in range(len(full_instrs)):
+            # C_{-i} = full program minus instruction at idx
+            reduced = [instr for j, instr in enumerate(full_instrs) if j != idx]
+
+            try:
+                score_reduced = dce_score(reduced)
+            except Exception:
+                score_reduced = baseline  # fallback: neutral
+
+            # aᵢ = max(f(C) - f(C_{-i}), 0)
+            attr = max(baseline - score_reduced, 0.0)
+            attr = round(attr, 4)
+
+            # Classify importance
+            if attr >= 0.3:
+                importance = "high"
+            elif attr >= 0.1:
+                importance = "medium"
+            elif attr > 0.0:
+                importance = "low"
+            else:
+                importance = "none"
+
+            # Get the instruction info
+            instr = full_instrs[idx]
+            working_single = _deepcopy_module.deepcopy(full_instrs)
+            dce_full = DeadCodeEliminator(working_single)
+            dce_full.analyse_and_eliminate()
+            is_dead = working_single[idx].dead
+
+            attributions.append({
+                "index": idx,
+                "text": str(instr),
+                "kind": instr.kind,
+                "attribution": attr,
+                "importance": importance,
+                "is_dead_by_dce": is_dead,
+                "baseline_score": round(baseline, 4),
+                "score_without": round(score_reduced, 4),
+            })
+
+        # Sort by attribution descending for the summary
+        top_lines = sorted(attributions, key=lambda x: x["attribution"], reverse=True)
+
+        return {
+            "attributions": attributions,
+            "top_suspects": top_lines[:5],
+            "baseline_dead_prob": round(baseline, 4),
+            "total_lines": len(full_instrs),
+            "stats": {
+                "high_importance": sum(1 for a in attributions if a["importance"] == "high"),
+                "medium_importance": sum(1 for a in attributions if a["importance"] == "medium"),
+                "low_importance": sum(1 for a in attributions if a["importance"] == "low"),
+                "none_importance": sum(1 for a in attributions if a["importance"] == "none"),
+            }
+        }
+
+    except SyntaxError as e:
+        return {"error": f"Syntax error: {e}"}
+    except Exception as e:
+        return {"error": f"Internal error: {e}"}
+
+
+# ──────────────────────────────────────────────
+# 7.  LLM STRUCTURED OUTPUT  (Section 4.2.2)
+# ──────────────────────────────────────────────
+
+def run_llm_analysis(source: str) -> dict:
+    """
+    Use Gemini LLM (via google.genai new SDK or google.generativeai legacy)
+    to produce structured output:
+      - Dead code: Yes/No
+      - Line Number(s)
+      - Type: Unused | Unreachable | None
+      - Explanation
+      - Fixed Code
+
+    Implements strict prompt formatting from Appendix E of the paper.
+    """
+    # Try new SDK first, fall back to legacy
+    try:
+        from google import genai as _genai_new
+        from google.genai import types as _genai_types
+        _use_new_sdk = True
+    except ImportError:
+        try:
+            import google.generativeai as _genai_legacy
+            _use_new_sdk = False
+        except ImportError:
+            return {"error": "google-genai not installed. Run: pip install google-genai"}
+
+    api_key = os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        return {"error": "GEMINI_API_KEY not set in environment variables."}
+
+    source = source.strip()
+    if not source:
+        return {"error": "Empty source code."}
+
+    # ── Run our own DCE first to get suspect lines ──────────
+    try:
+        parser = TACParser(source)
+        full_instrs = parser.parse()
+        working = _deepcopy_module.deepcopy(full_instrs)
+        dce = DeadCodeEliminator(working)
+        dce.analyse_and_eliminate()
+        dead_lines = [(i, str(full_instrs[i])) for i, instr in enumerate(working) if instr.dead]
+        dead_summary = "\n".join([f"  Line {i}: {txt}" for i, txt in dead_lines]) if dead_lines else "  (none detected by static analysis)"
+    except Exception:
+        dead_summary = "  (static analysis failed)"
+
+    # ── Build strict structured prompt (Appendix E) ─────────
+    prompt = f"""You are an expert compiler engineer and code analysis system.
+You are analyzing code written in a simple imperative mini-language that supports:
+  - Variable assignments (x = expr;)
+  - Arithmetic expressions (+, -, *, /)
+  - Control flow: if (cond) {{ }}, while (cond) {{ }}
+  - print(expr); and return expr;
+
+Our static Dead Code Elimination (DCE) engine has already identified these potentially dead TAC instructions:
+{dead_summary}
+
+Here is the FULL source code to analyze:
+```
+{source}
+```
+
+You MUST respond in EXACTLY this structured format with NO extra text before or after:
+
+Dead code: <Yes or No>
+Line Number: <comma-separated line numbers, or None>
+Type: <Unused Variable | Unreachable Code | Multiple | None>
+Explanation: <1-3 sentences explaining WHY the code is dead or not>
+Fixed Code:
+```
+<the corrected version of the full code with dead lines removed, or the original if no dead code>
+```
+
+IMPORTANT RULES:
+1. "Unused Variable" = variable assigned but its value is never read before reassignment or program end
+2. "Unreachable Code" = code after return/unconditional goto, or in branches that can never execute
+3. "Multiple" = both types present
+4. Line numbers should correspond to the source code lines (1-indexed)
+5. Fixed Code must be syntactically valid in the same mini-language
+6. Do NOT add comments or extra explanation outside the format"""
+
+    try:
+        if _use_new_sdk:
+            client = _genai_new.Client(api_key=api_key)
+            response = client.models.generate_content(
+                model="gemma-3-27b-it",   # confirmed working on free tier
+                contents=prompt,
+                config=_genai_types.GenerateContentConfig(
+                    temperature=0.1,
+                    max_output_tokens=1024,
+                ),
+            )
+        else:
+            _genai_legacy.configure(api_key=api_key)
+            model = _genai_legacy.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(
+                prompt,
+                generation_config=_genai_legacy.types.GenerationConfig(
+                    temperature=0.1,
+                    max_output_tokens=1024,
+                )
+            )
+        raw_text = response.text.strip()
+    except Exception as e:
+        return {"error": f"Gemini API error: {e}"}
+
+    # ── Parse structured response ────────────────────────────
+    parsed = _parse_llm_response(raw_text)
+    parsed["raw_response"] = raw_text
+    parsed["prompt_used"] = prompt
+    parsed["dead_lines_from_dce"] = [(i, txt) for i, txt in dead_lines] if 'dead_lines' in dir() else []
+    return parsed
+
+
+def _parse_llm_response(text: str) -> dict:
+    """Extract structured fields from LLM response."""
+    result = {
+        "dead_code": None,
+        "line_numbers": [],
+        "type": None,
+        "explanation": None,
+        "fixed_code": None,
+        "parse_success": False,
+    }
+
+    lines = text.split("\n")
+    fixed_code_lines = []
+    in_code_block = False
+    in_fixed_code = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Dead code field
+        if stripped.lower().startswith("dead code:"):
+            val = stripped.split(":", 1)[1].strip().lower()
+            result["dead_code"] = "yes" in val
+
+        # Line number field
+        elif stripped.lower().startswith("line number:"):
+            val = stripped.split(":", 1)[1].strip()
+            if val.lower() == "none" or not val:
+                result["line_numbers"] = []
+            else:
+                nums = re.findall(r'\d+', val)
+                result["line_numbers"] = [int(n) for n in nums]
+
+        # Type field
+        elif stripped.lower().startswith("type:"):
+            result["type"] = stripped.split(":", 1)[1].strip()
+
+        # Explanation field
+        elif stripped.lower().startswith("explanation:"):
+            result["explanation"] = stripped.split(":", 1)[1].strip()
+
+        # Fixed code section
+        elif stripped.lower().startswith("fixed code:"):
+            in_fixed_code = True
+
+        elif in_fixed_code:
+            if stripped == "```" and not in_code_block:
+                in_code_block = True
+            elif stripped == "```" and in_code_block:
+                in_code_block = False
+                in_fixed_code = False
+            elif in_code_block:
+                fixed_code_lines.append(line)
+
+    if fixed_code_lines:
+        result["fixed_code"] = "\n".join(fixed_code_lines).strip()
+
+    # Mark parse success if we got the key fields
+    if result["dead_code"] is not None and result["explanation"]:
+        result["parse_success"] = True
+
+    return result
 
 
 # ──────────────────────────────────────────────
