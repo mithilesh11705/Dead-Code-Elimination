@@ -794,6 +794,232 @@
     .pass-row-body { display: none; padding: 0 16px 12px; }
     .pass-row.open .pass-row-body { display: block; }
 
+    /* ═══════════════════════════════════════════
+       ATTRIBUTION TAB  (Section 4.2.1)
+    ═══════════════════════════════════════════ */
+    .attr-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .attr-header h3 {
+      font-size: 1rem; font-weight: 700; color: var(--text-hi);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .attr-run-btn {
+      padding: 10px 28px;
+      background: linear-gradient(135deg, #7c3aed, #0e7490);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 800;
+      cursor: pointer; letter-spacing: 0.03em;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.4);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .attr-run-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(124,58,237,0.55); }
+    .attr-run-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    .attr-summary-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    @media (max-width: 900px) { .attr-summary-grid { grid-template-columns: repeat(2,1fr); } }
+    .attr-stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 16px 18px; text-align: center;
+    }
+    .asc-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+                 text-transform: uppercase; color: var(--text-lo); margin-bottom: 6px; }
+    .asc-value { font-size: 1.8rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+                 letter-spacing: -0.03em; line-height: 1; }
+    .asc-v-hi   { color: var(--red); }
+    .asc-v-mid  { color: var(--amber); }
+    .asc-v-lo   { color: var(--cyan); }
+    .asc-v-none { color: var(--text-lo); }
+    .asc-sub    { font-size: 0.68rem; color: var(--text-lo); margin-top: 4px; }
+
+    /* Top suspects cards */
+    .attr-suspects {
+      margin-bottom: 20px;
+    }
+    .attr-section-title {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      color: var(--text-lo); text-transform: uppercase; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .attr-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .suspects-list { display: flex; flex-direction: column; gap: 6px; }
+    .suspect-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      display: grid; grid-template-columns: 32px 1fr auto auto;
+      gap: 12px; align-items: center;
+      animation: fadeInRow 0.3s ease both;
+      transition: border-color 0.2s;
+    }
+    .suspect-card:hover { border-color: var(--border-hi); }
+    .sc-rank { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-lo); text-align: center; }
+    .sc-code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-score {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700;
+      padding: 2px 10px; border-radius: 999px; white-space: nowrap;
+    }
+    .sc-importance {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+      padding: 3px 8px; border-radius: 999px; white-space: nowrap; text-transform: uppercase;
+    }
+    .imp-high   { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+    .imp-medium { background: rgba(251,191,36,0.15);  color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+    .imp-low    { background: rgba(34,211,238,0.12);  color: var(--cyan);  border: 1px solid rgba(34,211,238,0.25); }
+    .imp-none   { background: rgba(90,90,120,0.12);   color: var(--text-lo); }
+
+    /* Full attribution list  */
+    .attr-list { display: flex; flex-direction: column; gap: 4px; }
+    .attr-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 160px 90px;
+      gap: 12px; align-items: center;
+      padding: 8px 12px; border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      animation: fadeInRow 0.3s ease both;
+      transition: border-color 0.2s;
+    }
+    .attr-row:hover { border-color: var(--border-hi); }
+    .attr-row-idx { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-lo); text-align: right; }
+    .attr-row-code { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .attr-row-bar-wrap { height: 6px; background: var(--bg-card2); border-radius: 99px; position: relative; }
+    .attr-row-bar { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+    .bar-high   { background: var(--red); }
+    .bar-medium { background: var(--amber); }
+    .bar-low    { background: var(--cyan); }
+    .bar-none   { background: var(--text-lo); }
+    .attr-row-val { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--text-lo); text-align: right; }
+
+    /* ═══════════════════════════════════════════
+       AI ANALYZER TAB  (Section 4.2.2)
+    ═══════════════════════════════════════════ */
+    .llm-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+    }
+    .llm-header h3 {
+      font-size: 1rem; font-weight: 700; color: var(--text-hi);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .llm-run-btn {
+      padding: 10px 28px;
+      background: linear-gradient(135deg, #7c3aed, #be185d);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 800;
+      cursor: pointer; letter-spacing: 0.03em;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 20px rgba(190,24,93,0.35);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .llm-run-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(190,24,93,0.5); }
+    .llm-run-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+    /* verdict card */
+    .llm-verdict {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 24px 28px;
+      margin-bottom: 16px; display: none;
+      animation: slideUp 0.3s ease;
+    }
+    .llm-verdict.visible { display: block; }
+    .llm-verdict-top {
+      display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .verdict-pill {
+      font-size: 1rem; font-weight: 800; letter-spacing: 0.04em;
+      padding: 8px 22px; border-radius: 999px;
+    }
+    .verdict-yes { background: rgba(248,113,113,0.18); color: var(--red); border: 1.5px solid rgba(248,113,113,0.4); }
+    .verdict-no  { background: rgba(52,211,153,0.15);  color: var(--green); border: 1.5px solid rgba(52,211,153,0.3); }
+    .verdict-badge {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(167,139,250,0.15); color: var(--purple-bright);
+      border: 1px solid rgba(167,139,250,0.3);
+    }
+    .verdict-lines {
+      font-size: 0.8rem; color: var(--text-mid);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .llm-field-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 16px; margin-bottom: 16px;
+    }
+    @media (max-width: 900px) { .llm-field-grid { grid-template-columns: 1fr; } }
+    .llm-field {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+    }
+    .llm-field-label {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-lo); margin-bottom: 8px;
+    }
+    .llm-field-value {
+      font-size: 0.85rem; color: var(--text-hi); line-height: 1.6;
+    }
+    .llm-field-value.mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* fixed code pane */
+    .llm-fixed-pane {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden; display: none;
+    }
+    .llm-fixed-pane.visible { display: block; }
+    .llm-fixed-header {
+      padding: 12px 18px;
+      background: var(--bg-card2); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .llm-copy-btn {
+      padding: 6px 14px;
+      background: linear-gradient(135deg, var(--purple-mid), #1d4ed8);
+      border: none; border-radius: 6px;
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .llm-copy-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
+    .llm-fixed-body {
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem; line-height: 1.9;
+      color: var(--green); overflow-x: auto;
+      white-space: pre;
+    }
+
+    /* gemini watermark */
+    .llm-powered-by {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.7rem; color: var(--text-lo);
+      margin-top: 14px;
+    }
+    .llm-powered-by span { color: var(--purple-bright); font-weight: 600; }
+
+    /* loading skeleton */
+    .llm-skeleton {
+      display: none; flex-direction: column; gap: 12px; padding: 8px 0;
+    }
+    .llm-skeleton.visible { display: flex; }
+    .skel-line {
+      height: 14px; border-radius: 6px;
+      background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card2) 50%, var(--bg-card) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
   </style>
 </head>
 <body>
@@ -939,6 +1165,8 @@ print(y);"
         <button class="tab-btn"        id="tab-cfg"    onclick="showTab('cfg')">🗂️ Block View</button>
         <button class="tab-btn"        id="tab-opt"    onclick="showTab('opt')">⚡ Optimizations</button>
         <button class="tab-btn"        id="tab-final"  onclick="showTab('final')">🏁 Final Output</button>
+        <button class="tab-btn"        id="tab-attr"   onclick="showTab('attr')">🎯 Attribution</button>
+        <button class="tab-btn"        id="tab-llm"    onclick="showTab('llm')">🤖 AI Analyzer</button>
       </div>
 
       <!-- Content -->
@@ -1175,6 +1403,156 @@ print(y);"
           </div>
 
         </div><!-- /panel-final -->
+
+        <!-- ═══ ATTRIBUTION TAB (Section 4.2.1) ═══════════════════════════ -->
+        <div class="tab-panel" id="panel-attr">
+
+          <div class="attr-header">
+            <h3>🎯 Dead Code Attribution
+              <span style="font-size:0.72rem;font-weight:400;color:var(--text-lo)">
+                Leave-One-Out (LOO) · Section 4.2.1
+              </span>
+            </h3>
+            <button class="attr-run-btn" id="attr-run-btn" onclick="runAttribution()">
+              <span id="attr-btn-icon">▶</span>
+              <span id="attr-btn-text">Compute Attribution Scores</span>
+            </button>
+          </div>
+
+          <!-- Summary counters (hidden until run) -->
+          <div class="attr-summary-grid" id="attr-summary" style="display:none">
+            <div class="attr-stat-card">
+              <div class="asc-label">High Risk 🔴</div>
+              <div class="asc-value asc-v-hi" id="a-hi">—</div>
+              <div class="asc-sub">attribution ≥ 0.30</div>
+            </div>
+            <div class="attr-stat-card">
+              <div class="asc-label">Medium Risk 🟡</div>
+              <div class="asc-value asc-v-mid" id="a-mid">—</div>
+              <div class="asc-sub">attribution ≥ 0.10</div>
+            </div>
+            <div class="attr-stat-card">
+              <div class="asc-label">Low Risk 🔵</div>
+              <div class="asc-value asc-v-lo" id="a-lo">—</div>
+              <div class="asc-sub">attribution > 0</div>
+            </div>
+            <div class="attr-stat-card">
+              <div class="asc-label">No Effect ⚫</div>
+              <div class="asc-value asc-v-none" id="a-none">—</div>
+              <div class="asc-sub">attribution = 0</div>
+            </div>
+          </div>
+
+          <!-- Top suspects (hidden until run) -->
+          <div id="attr-suspects-wrap" style="display:none">
+            <div class="attr-section-title">Top Suspect Lines</div>
+            <div class="suspects-list" id="suspects-list"></div>
+          </div>
+
+          <!-- Full attribution list (hidden until run) -->
+          <div id="attr-full-wrap" style="display:none; margin-top:20px">
+            <div class="attr-section-title">All Instructions — Importance Scores</div>
+            <div class="attr-list" id="attr-list"></div>
+          </div>
+
+          <!-- Formula callout -->
+          <div id="attr-formula" style="
+            margin-top:20px; padding:16px 20px;
+            background:var(--bg-card); border:1px solid var(--border);
+            border-radius:var(--radius-md); display:none">
+            <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-lo);margin-bottom:10px">Paper Formula (Eq. 4.2.1)</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--purple-bright);line-height:2">
+              C₋ᵢ = C − {lᵢ}<br/>
+              <span style="color:var(--cyan)">aᵢ = max(f(C) − f(C₋ᵢ), 0)</span>
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-mid);margin-top:8px;line-height:1.7">
+              Where <code style="color:var(--amber)">f()</code> = dead-code probability after liveness analysis.
+              A higher <code style="color:var(--cyan)">aᵢ</code> means the line is <strong>more responsible</strong> for dead code.
+            </div>
+          </div>
+
+        </div><!-- /panel-attr -->
+
+        <!-- ═══ AI ANALYZER TAB (Section 4.2.2) ═══════════════════════════ -->
+        <div class="tab-panel" id="panel-llm">
+
+          <div class="llm-header">
+            <h3>🤖 AI Code Analyzer
+              <span style="font-size:0.72rem;font-weight:400;color:var(--text-lo)">
+                Gemini LLM · Structured Output · Section 4.2.2
+              </span>
+            </h3>
+            <button class="llm-run-btn" id="llm-run-btn" onclick="runLLMAnalysis()">
+              <span id="llm-btn-icon">✨</span>
+              <span id="llm-btn-text">Analyze with Gemini</span>
+            </button>
+          </div>
+
+          <!-- Skeleton loader -->
+          <div class="llm-skeleton" id="llm-skeleton">
+            <div class="skel-line" style="width:60%"></div>
+            <div class="skel-line" style="width:40%"></div>
+            <div class="skel-line" style="width:80%"></div>
+            <div class="skel-line" style="width:55%"></div>
+            <div class="skel-line" style="width:90%"></div>
+          </div>
+
+          <!-- Error box -->
+          <div id="llm-error" style="
+            display:none; margin-bottom:16px; padding:14px 18px;
+            background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3);
+            border-radius:var(--radius-sm); color:var(--red);
+            font-size:0.82rem; font-family:'JetBrains Mono',monospace;"></div>
+
+          <!-- Verdict card -->
+          <div class="llm-verdict" id="llm-verdict">
+            <div class="llm-verdict-top" id="llm-verdict-top"></div>
+            <div class="llm-field-grid">
+              <div class="llm-field">
+                <div class="llm-field-label">📊 Type</div>
+                <div class="llm-field-value" id="llm-field-type">—</div>
+              </div>
+              <div class="llm-field">
+                <div class="llm-field-label">📍 Line Numbers (source)</div>
+                <div class="llm-field-value mono" id="llm-field-lines">—</div>
+              </div>
+              <div class="llm-field" style="grid-column: 1 / -1">
+                <div class="llm-field-label">💡 Explanation</div>
+                <div class="llm-field-value" id="llm-field-expl">—</div>
+              </div>
+            </div>
+            <div class="llm-powered-by">Powered by <span>Gemini 1.5 Flash</span> · Structured Prompt (Appendix E)</div>
+          </div>
+
+          <!-- Fixed code pane -->
+          <div class="llm-fixed-pane" id="llm-fixed-pane">
+            <div class="llm-fixed-header">
+              <span style="color:var(--green)">✅ Fixed / Cleaned Code</span>
+              <button class="llm-copy-btn" onclick="copyFixedCode()" id="llm-copy-btn">📋 Copy to Editor</button>
+            </div>
+            <div class="llm-fixed-body" id="llm-fixed-body"></div>
+          </div>
+
+          <!-- Prompt preview (collapsible) -->
+          <div id="llm-prompt-wrap" style="margin-top:16px;display:none">
+            <div class="pass-row" id="pr-prompt">
+              <div class="pass-row-header" onclick="togglePassRow('prompt')">
+                <span>🔬</span>
+                <span>View Structured Prompt Sent to Gemini</span>
+                <span class="pass-row-chevron">▶</span>
+              </div>
+              <div class="pass-row-body">
+                <pre id="llm-prompt-text" style="
+                  font-family:'JetBrains Mono',monospace; font-size:0.72rem;
+                  color:var(--text-mid); white-space:pre-wrap; line-height:1.7;
+                  background:var(--bg-surface); padding:12px; border-radius:6px;
+                  border:1px solid var(--border); overflow-x:auto;
+                "></pre>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panel-llm -->
 
       </div><!-- /content-area -->
     </div><!-- /panel-right -->
@@ -1738,6 +2116,217 @@ document.getElementById('code-editor').addEventListener('keydown', e => {
 window.addEventListener('load', () => {
   setTimeout(() => loadDemo(1), 300);
 });
+
+
+// ══════════════════════════════════════════════════════════════════
+// ATTRIBUTION (Section 4.2.1) — LOO scoring
+// ══════════════════════════════════════════════════════════════════
+
+async function runAttribution() {
+  const source = document.getElementById('code-editor').value.trim();
+  if (!source) { alert('Please write or load code first.'); return; }
+
+  const btn  = document.getElementById('attr-run-btn');
+  const icon = document.getElementById('attr-btn-icon');
+  const text = document.getElementById('attr-btn-text');
+  icon.innerHTML = '<div class="spinner"></div>';
+  text.textContent = 'Computing LOO scores…';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/attribution', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      alert('⚠ Attribution error: ' + data.error);
+      return;
+    }
+
+    renderAttribution(data);
+
+  } catch(e) {
+    alert('⚠ Cannot reach server. Is server.py running?');
+  } finally {
+    icon.textContent = '▶';
+    text.textContent = 'Compute Attribution Scores';
+    btn.disabled = false;
+  }
+}
+
+function renderAttribution(data) {
+  const { attributions, top_suspects, stats, baseline_dead_prob, total_lines } = data;
+
+  // Show summary grid
+  document.getElementById('attr-summary').style.display = 'grid';
+  document.getElementById('a-hi').textContent   = stats.high_importance;
+  document.getElementById('a-mid').textContent  = stats.medium_importance;
+  document.getElementById('a-lo').textContent   = stats.low_importance;
+  document.getElementById('a-none').textContent = stats.none_importance;
+
+  // Show formula callout
+  document.getElementById('attr-formula').style.display = 'block';
+
+  // Top suspects
+  document.getElementById('attr-suspects-wrap').style.display = 'block';
+  const suspList = document.getElementById('suspects-list');
+  suspList.innerHTML = top_suspects.filter(s => s.attribution > 0).slice(0, 5).map((s, rank) => {
+    const impClass = `imp-${s.importance}`;
+    const scoreColor = s.importance === 'high' ? 'var(--red)'
+                     : s.importance === 'medium' ? 'var(--amber)'
+                     : s.importance === 'low' ? 'var(--cyan)'
+                     : 'var(--text-lo)';
+    return `<div class="suspect-card" style="--i:${rank}">
+      <span class="sc-rank">#${rank+1}</span>
+      <span class="sc-code">${escapeHtml(s.text)}</span>
+      <span class="sc-score" style="color:${scoreColor};background:${scoreColor}1a;border:1px solid ${scoreColor}44">
+        aᵢ = ${s.attribution.toFixed(4)}
+      </span>
+      <span class="sc-importance ${impClass}">${s.importance}</span>
+    </div>`;
+  }).join('') || '<div style="color:var(--text-lo);font-size:0.82rem;padding:12px">No lines with non-zero attribution found.</div>';
+
+  // Full list
+  document.getElementById('attr-full-wrap').style.display = 'block';
+  const maxAttr = Math.max(...attributions.map(a => a.attribution), 0.001);
+  const attrList = document.getElementById('attr-list');
+  attrList.innerHTML = attributions.map((a, i) => {
+    const pct = Math.min((a.attribution / maxAttr) * 100, 100).toFixed(1);
+    const barClass = `bar-${a.importance}`;
+    const textColor = a.is_dead_by_dce ? 'var(--red)' : 'var(--text-mid)';
+    return `<div class="attr-row" style="--i:${i}">
+      <span class="attr-row-idx">${i}</span>
+      <span class="attr-row-code" style="color:${textColor}" title="${escapeHtml(a.text)}">${escapeHtml(a.text)}</span>
+      <div class="attr-row-bar-wrap">
+        <div class="attr-row-bar ${barClass}" id="abar-${i}" style="width:0%" data-target="${pct}"></div>
+      </div>
+      <span class="attr-row-val">${a.attribution.toFixed(4)}</span>
+    </div>`;
+  }).join('');
+
+  // Animate bars after brief delay
+  setTimeout(() => {
+    attrList.querySelectorAll('[id^="abar-"]').forEach(bar => {
+      const target = bar.getAttribute('data-target');
+      bar.style.width = target + '%';
+    });
+  }, 150);
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// LLM STRUCTURED OUTPUT (Section 4.2.2) — Gemini
+// ══════════════════════════════════════════════════════════════════
+
+async function runLLMAnalysis() {
+  const source = document.getElementById('code-editor').value.trim();
+  if (!source) { alert('Please write or load code first.'); return; }
+
+  const btn  = document.getElementById('llm-run-btn');
+  const icon = document.getElementById('llm-btn-icon');
+  const text = document.getElementById('llm-btn-text');
+
+  icon.innerHTML = '<div class="spinner"></div>';
+  text.textContent = 'Analyzing with Gemini…';
+  btn.disabled = true;
+
+  // Show skeleton, hide previous results
+  document.getElementById('llm-skeleton').classList.add('visible');
+  document.getElementById('llm-error').style.display = 'none';
+  document.getElementById('llm-verdict').classList.remove('visible');
+  document.getElementById('llm-fixed-pane').classList.remove('visible');
+  document.getElementById('llm-prompt-wrap').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/llm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    document.getElementById('llm-skeleton').classList.remove('visible');
+
+    if (data.error) {
+      const errEl = document.getElementById('llm-error');
+      errEl.textContent = '⚠  ' + data.error;
+      errEl.style.display = 'block';
+      return;
+    }
+
+    renderLLMResult(data);
+
+  } catch(e) {
+    document.getElementById('llm-skeleton').classList.remove('visible');
+    const errEl = document.getElementById('llm-error');
+    errEl.textContent = '⚠  Cannot reach server. Is server.py running?';
+    errEl.style.display = 'block';
+  } finally {
+    icon.textContent = '✨';
+    text.textContent = 'Analyze with Gemini';
+    btn.disabled = false;
+  }
+}
+
+function renderLLMResult(data) {
+  // ─ Verdict card
+  const verdictEl = document.getElementById('llm-verdict');
+  verdictEl.classList.add('visible');
+
+  // Top row
+  const topEl = document.getElementById('llm-verdict-top');
+  const isYes = data.dead_code === true;
+  const pillClass = isYes ? 'verdict-yes' : 'verdict-no';
+  const pillText  = isYes ? '❌ Dead Code Detected' : '✅ No Dead Code';
+  const lineText  = data.line_numbers && data.line_numbers.length > 0
+    ? `Lines: ${data.line_numbers.join(', ')}`
+    : '';
+  topEl.innerHTML = `
+    <span class="verdict-pill ${pillClass}">${pillText}</span>
+    ${data.type ? `<span class="verdict-badge">${escapeHtml(data.type)}</span>` : ''}
+    ${lineText ? `<span class="verdict-lines">${escapeHtml(lineText)}</span>` : ''}
+  `;
+
+  // Fields
+  document.getElementById('llm-field-type').textContent  = data.type || 'N/A';
+  document.getElementById('llm-field-lines').textContent = data.line_numbers && data.line_numbers.length > 0
+    ? data.line_numbers.join(', ')
+    : 'None';
+  document.getElementById('llm-field-expl').textContent  = data.explanation || 'No explanation provided.';
+
+  // ─ Fixed code pane
+  if (data.fixed_code) {
+    const fixedPane = document.getElementById('llm-fixed-pane');
+    fixedPane.classList.add('visible');
+    document.getElementById('llm-fixed-body').textContent = data.fixed_code;
+    // Store for copy
+    fixedPane.dataset.code = data.fixed_code;
+  }
+
+  // ─ Prompt preview
+  if (data.prompt_used) {
+    document.getElementById('llm-prompt-wrap').style.display = 'block';
+    document.getElementById('llm-prompt-text').textContent = data.prompt_used;
+  }
+}
+
+function copyFixedCode() {
+  const fixedPane = document.getElementById('llm-fixed-pane');
+  const code = fixedPane.dataset.code || '';
+  if (!code) return;
+
+  // Copy to editor
+  document.getElementById('code-editor').value = code;
+  const btn = document.getElementById('llm-copy-btn');
+  btn.textContent = '✅ Copied!';
+  setTimeout(() => { btn.textContent = '📋 Copy to Editor'; }, 1800);
+
+  // Auto-run DCE on the fixed code
+  setTimeout(() => runDCE(), 200);
+}
 
 </script>
 </body>

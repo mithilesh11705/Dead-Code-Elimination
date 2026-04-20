@@ -1,0 +1,12 @@
+# Dead Code Eliminator — DCE Visualizer
+# =======================================
+# Core backend
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Gemini LLM — NEW SDK (google.genai)
+# Replaces deprecated google-generativeai
+google-genai>=1.0.0
+
+# Environment variable loading
+python-dotenv>=1.0.0
