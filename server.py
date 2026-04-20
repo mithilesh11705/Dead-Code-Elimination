@@ -22,6 +22,7 @@ except ImportError:
     pass  # dotenv not installed; rely on environment variables being set
 
 from dce_engine import run_dce, run_optimization, run_all_passes, run_attribution, run_llm_analysis
+from js_analyzer import run_js_analysis
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
@@ -56,6 +57,20 @@ def all_passes_endpoint():
     source = data.get('source', '')
     result = run_all_passes(source)
     return jsonify(result)
+
+
+# ── NEW: JavaScript Dead Code Analyzer ──────────────────────────────────────
+@app.route('/api/js', methods=['POST'])
+def js_endpoint():
+    """
+    Static JavaScript dead code analysis.
+    Detects: unused vars, unused functions, unreachable code, dead branches.
+    """
+    data = request.get_json(force=True)
+    source = data.get('source', '')
+    result = run_js_analysis(source)
+    return jsonify(result)
+
 
 
 # ── NEW: Dead Code Attribution  (Section 4.2.1) ─────────────────────────────

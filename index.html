@@ -1020,6 +1020,251 @@
       100% { background-position: -200% 0; }
     }
 
+    /* ═══════════════════════════════════════════
+       JS ANALYZER TAB
+    ═══════════════════════════════════════════ */
+    --amber-bright: #fbbf24;
+    --amber-dim:    rgba(251,191,36,0.08);
+
+    /* JS tab split layout */
+    .js-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      min-height: 600px;
+    }
+    @media (max-width: 1100px) { .js-layout { grid-template-columns: 1fr; } }
+
+    /* Left: JS editor panel */
+    .js-editor-panel {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .js-demos { display: flex; flex-direction: column; gap: 6px; }
+    .js-demo-btn {
+      width: 100%; text-align: left; padding: 10px 14px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-mid); font-family: 'Inter', sans-serif;
+      font-size: 0.8rem; cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .js-demo-btn:hover, .js-demo-btn.active {
+      border-color: var(--amber);
+      background: rgba(251,191,36,0.08);
+      color: var(--text-hi);
+    }
+    .js-demo-icon { font-size: 15px; }
+    .js-demo-name { font-weight: 600; font-size: 0.82rem; }
+    .js-demo-desc { font-size: 0.7rem; opacity: 0.6; }
+
+    #js-editor {
+      width: 100%; height: 260px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--amber);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; line-height: 1.7;
+      padding: 16px; resize: none; outline: none;
+      transition: border-color 0.2s;
+    }
+    #js-editor:focus { border-color: var(--amber); }
+
+    .js-run-btn {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, #b45309, #d97706);
+      border: none; border-radius: var(--radius-sm);
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; letter-spacing: 0.02em;
+      transition: all 0.2s ease;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(180,83,9,0.4);
+    }
+    .js-run-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 30px rgba(180,83,9,0.6);
+    }
+    .js-run-btn.loading { opacity: 0.7; pointer-events: none; }
+
+    #js-error-box {
+      display: none; padding: 10px 14px;
+      background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+      border-radius: var(--radius-sm); color: var(--red);
+      font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Right: JS results panel */
+    .js-results-panel { display: flex; flex-direction: column; gap: 16px; }
+
+    /* JS stats bar */
+    .js-stats-bar {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    @media (max-width: 900px) { .js-stats-bar { grid-template-columns: repeat(2,1fr); } }
+    .js-stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 14px 16px;
+      text-align: center; transition: background 0.2s;
+    }
+    .js-stat-card:hover { background: var(--bg-card2); }
+    .js-stat-label {
+      font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-lo); margin-bottom: 5px;
+    }
+    .js-stat-value {
+      font-size: 1.7rem; font-weight: 800; font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.03em; line-height: 1;
+    }
+    .js-sv-total   { color: var(--text-hi); }
+    .js-sv-dead    { color: var(--red); }
+    .js-sv-warn    { color: var(--amber); }
+    .js-sv-pct     { color: var(--cyan); }
+    .js-stat-sub { font-size: 0.65rem; color: var(--text-lo); margin-top: 3px; }
+
+    /* JS inner tabs */
+    .js-inner-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--bg-surface); border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    }
+    .js-tab-btn {
+      padding: 10px 20px;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      color: var(--text-lo); font-family: 'Inter', sans-serif;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .js-tab-btn:hover { color: var(--text-mid); }
+    .js-tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); }
+    .js-inner-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border); border-top: none;
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      padding: 16px; min-height: 300px;
+    }
+    .js-inner-panel { display: none; }
+    .js-inner-panel.active { display: block; animation: fadeInRow 0.25s ease; }
+
+    /* Source view */
+    .js-src-list { display: flex; flex-direction: column; gap: 2px; }
+    .js-src-row {
+      display: grid;
+      grid-template-columns: 36px 8px 1fr auto;
+      gap: 0 10px; align-items: center;
+      padding: 5px 10px; border-radius: 5px;
+      border: 1px solid transparent;
+      animation: fadeInRow 0.3s ease both;
+    }
+    .js-src-row.js-live   { background: rgba(52,211,153,0.04); }
+    .js-src-row.js-dead   { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.15); }
+    .js-src-row.js-blank  { opacity: 0.3; }
+    .js-row-num { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--text-lo); text-align: right; }
+    .js-row-dot { width: 5px; height: 5px; border-radius: 50%; }
+    .js-live .js-row-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .js-dead .js-row-dot { background: var(--red);   box-shadow: 0 0 5px var(--red); }
+    .js-blank .js-row-dot { background: transparent; }
+    .js-row-code {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+      color: var(--text-hi); white-space: pre;
+    }
+    .js-dead .js-row-code { color: var(--text-lo); text-decoration: line-through; }
+    .js-row-badge {
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 0.05em;
+      padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+    }
+    .jbadge-dead-var  { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.3); }
+    .jbadge-dead-fn   { background: rgba(167,139,250,0.15); color: var(--purple-bright); border: 1px solid rgba(167,139,250,0.3); }
+    .jbadge-unreach   { background: rgba(251,191,36,0.15);  color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+    .jbadge-branch    { background: rgba(34,211,238,0.1);   color: var(--cyan);  border: 1px solid rgba(34,211,238,0.25); }
+    .jbadge-live      { background: rgba(52,211,153,0.1);   color: var(--green); border: 1px solid rgba(52,211,153,0.2); }
+
+    /* Findings list */
+    .js-findings-list { display: flex; flex-direction: column; gap: 8px; }
+    .js-finding-card {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 16px;
+      animation: fadeInRow 0.3s ease both;
+      transition: border-color 0.2s;
+    }
+    .js-finding-card:hover { border-color: var(--border-hi); }
+    .js-finding-top {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .js-finding-line {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem; color: var(--text-lo);
+      background: var(--bg-card2); padding: 2px 8px; border-radius: 999px;
+    }
+    .js-finding-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem; color: var(--amber); font-weight: 600;
+    }
+    .js-finding-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem; color: var(--text-lo);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .js-finding-msg {
+      font-size: 0.78rem; color: var(--text-mid); margin-top: 4px; line-height: 1.5;
+    }
+    .jfkind-unused_var  { border-left: 3px solid var(--red); }
+    .jfkind-unused_fn   { border-left: 3px solid var(--purple-bright); }
+    .jfkind-unreachable { border-left: 3px solid var(--amber); }
+    .jfkind-dead_branch { border-left: 3px solid var(--cyan); }
+
+    /* Clean JS output */
+    .js-clean-box {
+      background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem; line-height: 1.9;
+      overflow: hidden;
+    }
+    .js-clean-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; background: var(--bg-card2);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--text-lo);
+    }
+    .js-copy-btn {
+      padding: 5px 12px;
+      background: linear-gradient(135deg, #b45309, #d97706);
+      border: none; border-radius: 6px;
+      color: #fff; font-family: 'Inter', sans-serif;
+      font-size: 0.7rem; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .js-copy-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 12px rgba(180,83,9,0.4); }
+    .js-clean-body {
+      padding: 14px 18px; color: var(--amber);
+      white-space: pre; overflow-x: auto; max-height: 460px; overflow-y: auto;
+    }
+
+    /* JS welcome */
+    .js-welcome {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center; gap: 14px;
+      padding: 60px 20px; color: var(--text-lo);
+    }
+    .js-welcome-icon { font-size: 52px; opacity: 0.35; }
+    .js-welcome h3 { font-size: 1.1rem; color: var(--text-mid); }
+    .js-welcome p { font-size: 0.82rem; max-width: 340px; line-height: 1.7; }
+
+    /* JS limitations note */
+    .js-note {
+      font-size: 0.72rem; color: var(--text-lo);
+      padding: 10px 14px;
+      background: rgba(251,191,36,0.05);
+      border: 1px solid rgba(251,191,36,0.15);
+      border-radius: var(--radius-sm);
+      line-height: 1.6;
+    }
+
   </style>
 </head>
 <body>
@@ -1167,6 +1412,7 @@ print(y);"
         <button class="tab-btn"        id="tab-final"  onclick="showTab('final')">🏁 Final Output</button>
         <button class="tab-btn"        id="tab-attr"   onclick="showTab('attr')">🎯 Attribution</button>
         <button class="tab-btn"        id="tab-llm"    onclick="showTab('llm')">🤖 AI Analyzer</button>
+        <button class="tab-btn"        id="tab-js"     onclick="showJSTab()"    style="color:var(--amber);border-bottom:2px solid transparent">🟨 JS Analyzer</button>
       </div>
 
       <!-- Content -->
@@ -1554,6 +1800,140 @@ print(y);"
 
         </div><!-- /panel-llm -->
 
+        <!-- ═══ JS ANALYZER TAB ════════════════════════════════════════════ -->
+        <div class="tab-panel" id="panel-js">
+
+          <div class="js-layout">
+
+            <!-- ── Left: JS editor ── -->
+            <div class="js-editor-panel">
+
+              <div class="section-label">JS Demo Programs</div>
+              <div class="js-demos">
+                <button class="js-demo-btn" id="jsdemo1-btn" onclick="loadJSDemo(1)">
+                  <span class="js-demo-icon">🗑️</span>
+                  <div>
+                    <div class="js-demo-name">Unused Variables</div>
+                    <div class="js-demo-desc">let/const declared but never read</div>
+                  </div>
+                </button>
+                <button class="js-demo-btn" id="jsdemo2-btn" onclick="loadJSDemo(2)">
+                  <span class="js-demo-icon">🔇</span>
+                  <div>
+                    <div class="js-demo-name">Dead Function</div>
+                    <div class="js-demo-desc">function defined but never called</div>
+                  </div>
+                </button>
+                <button class="js-demo-btn" id="jsdemo3-btn" onclick="loadJSDemo(3)">
+                  <span class="js-demo-icon">🚧</span>
+                  <div>
+                    <div class="js-demo-name">Unreachable Code</div>
+                    <div class="js-demo-desc">code after return statement</div>
+                  </div>
+                </button>
+                <button class="js-demo-btn" id="jsdemo4-btn" onclick="loadJSDemo(4)">
+                  <span class="js-demo-icon">🌿</span>
+                  <div>
+                    <div class="js-demo-name">Dead Branch</div>
+                    <div class="js-demo-desc">if(false) / while(0) blocks</div>
+                  </div>
+                </button>
+              </div>
+
+              <div class="section-label" style="margin-top:4px">JavaScript Editor</div>
+              <textarea id="js-editor" spellcheck="false" placeholder="// Paste your JavaScript here\n// Example:\nlet x = 5;\nlet y = 10; // y is never used\nconsole.log(x);"></textarea>
+
+              <button class="js-run-btn" id="js-run-btn" onclick="runJSAnalysis()">
+                <span id="js-btn-icon">▶</span>
+                <span id="js-btn-text">Analyze JavaScript</span>
+              </button>
+              <div id="js-error-box"></div>
+
+              <div class="js-note">
+                ⚡ <strong>Static analysis only.</strong> Detects unused variables,
+                unused functions, code after <code>return</code>/<code>throw</code>,
+                and always-false branches. Dynamic patterns (<code>eval</code>, computed
+                keys) are conservatively treated as live.
+              </div>
+            </div>
+
+            <!-- ── Right: JS results ── -->
+            <div class="js-results-panel">
+
+              <!-- Stats bar -->
+              <div class="js-stats-bar" id="js-stats-bar">
+                <div class="js-stat-card">
+                  <div class="js-stat-label">Total Lines</div>
+                  <div class="js-stat-value js-sv-total" id="js-stat-total">—</div>
+                  <div class="js-stat-sub">in file</div>
+                </div>
+                <div class="js-stat-card">
+                  <div class="js-stat-label">Dead Lines</div>
+                  <div class="js-stat-value js-sv-dead" id="js-stat-dead">—</div>
+                  <div class="js-stat-sub">can be removed</div>
+                </div>
+                <div class="js-stat-card">
+                  <div class="js-stat-label">Findings</div>
+                  <div class="js-stat-value js-sv-warn" id="js-stat-findings">—</div>
+                  <div class="js-stat-sub">issues found</div>
+                </div>
+                <div class="js-stat-card">
+                  <div class="js-stat-label">Reduction</div>
+                  <div class="js-stat-value js-sv-pct" id="js-stat-pct">—</div>
+                  <div class="js-stat-sub">% can be cut</div>
+                </div>
+              </div>
+
+              <!-- Welcome state -->
+              <div class="js-welcome" id="js-welcome">
+                <div class="js-welcome-icon">🟨</div>
+                <h3>JavaScript Dead Code Analyzer</h3>
+                <p>Load a demo or paste your JavaScript code, then click
+                  <strong>Analyze JavaScript</strong> to detect unused variables,
+                  dead functions, unreachable code, and always-false branches.</p>
+              </div>
+
+              <!-- Results (hidden until run) -->
+              <div id="js-results-body" style="display:none">
+
+                <!-- Inner tabs -->
+                <div class="js-inner-tabs">
+                  <button class="js-tab-btn active" id="jstab-source"   onclick="showJSInner('source')">📄 Source View</button>
+                  <button class="js-tab-btn"        id="jstab-findings" onclick="showJSInner('findings')">🔍 Findings <span id="js-findings-count" style="font-size:0.65rem;background:rgba(251,191,36,0.2);padding:1px 6px;border-radius:999px;margin-left:4px">0</span></button>
+                  <button class="js-tab-btn"        id="jstab-clean"    onclick="showJSInner('clean')">✅ Clean Output</button>
+                </div>
+
+                <div class="js-inner-content">
+
+                  <!-- Source view -->
+                  <div class="js-inner-panel active" id="jspanel-source">
+                    <div class="js-src-list" id="js-src-list"></div>
+                  </div>
+
+                  <!-- Findings -->
+                  <div class="js-inner-panel" id="jspanel-findings">
+                    <div class="js-findings-list" id="js-findings-list"></div>
+                  </div>
+
+                  <!-- Clean output -->
+                  <div class="js-inner-panel" id="jspanel-clean">
+                    <div class="js-clean-box">
+                      <div class="js-clean-header">
+                        <span style="color:var(--amber)">✅ Cleaned JavaScript</span>
+                        <button class="js-copy-btn" onclick="copyJSClean()">📋 Copy</button>
+                      </div>
+                      <pre class="js-clean-body" id="js-clean-body"></pre>
+                    </div>
+                  </div>
+
+                </div><!-- /js-inner-content -->
+              </div><!-- /js-results-body -->
+
+            </div><!-- /js-results-panel -->
+          </div><!-- /js-layout -->
+
+        </div><!-- /panel-js -->
+
       </div><!-- /content-area -->
     </div><!-- /panel-right -->
 
@@ -1561,6 +1941,246 @@ print(y);"
 </div><!-- /app -->
 
 <script>
+
+// ══════════════════════════════════════════════════════════════════
+// JS ANALYZER DEMOS
+// ══════════════════════════════════════════════════════════════════
+const JS_DEMOS = {
+  1: `// Demo 1 — Unused Variables
+function greet(name) {
+    let greeting = "Hello, " + name;
+    let unusedMsg = "This message is never used";
+    const prefix = "Mr.";   // never used
+    console.log(greeting);
+}
+greet("World");`,
+
+  2: `// Demo 2 — Unused Function
+function add(a, b) {
+    return a + b;
+}
+
+function multiply(a, b) {
+    return a * b;  // multiply() is never called
+}
+
+const result = add(3, 4);
+console.log(result);`,
+
+  3: `// Demo 3 — Unreachable Code
+function calculate(x, y) {
+    const result = x + y;
+    return result;
+    console.log("This line is unreachable");  // dead
+    let extra = x * 2;                          // dead
+    return extra;                               // dead
+}
+console.log(calculate(3, 4));`,
+
+  4: `// Demo 4 — Dead Branches
+const PI = 3.14159;
+
+if (false) {
+    console.log("This block never runs");
+    let loopCount = 42;
+    console.log(loopCount);
+}
+
+while (0) {
+    console.log("Also dead");
+}
+
+console.log("Area: " + PI * 5 * 5);`
+};
+
+// ── Load JS Demo ───────────────────────────────────────────────────────────
+function loadJSDemo(id) {
+  document.getElementById('js-editor').value = JS_DEMOS[id];
+  document.querySelectorAll('.js-demo-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`jsdemo${id}-btn`).classList.add('active');
+  runJSAnalysis();
+}
+
+// ── Show JS Tab (special: doesn't need currentData) ────────────────────────
+function showJSTab() {
+  document.getElementById('welcome').style.display = 'none';
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-js').classList.add('active');
+  const btn = document.getElementById('tab-js');
+  btn.classList.add('active');
+  btn.style.borderBottomColor = 'var(--amber)';
+}
+
+// ── Run JS Analysis via /api/js ────────────────────────────────────────────
+async function runJSAnalysis() {
+  const source = document.getElementById('js-editor').value.trim();
+  if (!source) return;
+
+  const btn = document.getElementById('js-run-btn');
+  document.getElementById('js-btn-icon').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('js-btn-text').textContent = 'Analyzing…';
+  btn.classList.add('loading');
+  document.getElementById('js-error-box').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      const eb = document.getElementById('js-error-box');
+      eb.textContent = '⚠  ' + data.error;
+      eb.style.display = 'block';
+      return;
+    }
+
+    renderJSResult(data);
+
+  } catch(e) {
+    const eb = document.getElementById('js-error-box');
+    eb.textContent = '⚠  Cannot connect to server. Make sure server.py is running.';
+    eb.style.display = 'block';
+  } finally {
+    document.getElementById('js-btn-icon').textContent = '▶';
+    document.getElementById('js-btn-text').textContent = 'Analyze JavaScript';
+    btn.classList.remove('loading');
+  }
+}
+
+// ── Render JS results ──────────────────────────────────────────────────────
+function renderJSResult(data) {
+  const { lines, findings, cleaned_code, stats } = data;
+
+  // Stats
+  document.getElementById('js-stat-total').textContent    = stats.total_lines;
+  document.getElementById('js-stat-dead').textContent     = stats.dead_line_count;
+  document.getElementById('js-stat-findings').textContent = findings.length;
+  document.getElementById('js-stat-pct').textContent      = stats.pct_eliminated + '%';
+  document.getElementById('js-findings-count').textContent = findings.length;
+
+  // Show results, hide welcome
+  document.getElementById('js-welcome').style.display = 'none';
+  document.getElementById('js-results-body').style.display = 'block';
+
+  // Source view
+  renderJSSource(lines);
+  // Findings
+  renderJSFindings(findings);
+  // Clean output
+  document.getElementById('js-clean-body').textContent = cleaned_code;
+
+  // Switch to source view
+  showJSInner('source');
+  if (findings.length > 0) {
+    // Small delay to show animation
+    setTimeout(() => showJSInner('findings'), 200);
+  }
+}
+
+// ── Render JS source line-by-line ──────────────────────────────────────────
+const JS_KIND_BADGE = {
+  unused_var:  ['UNUSED VAR',  'jbadge-dead-var'],
+  unused_fn:   ['DEAD FN',     'jbadge-dead-fn'],
+  unreachable: ['UNREACHABLE', 'jbadge-unreach'],
+  dead_branch: ['DEAD BRANCH', 'jbadge-branch'],
+};
+
+function renderJSSource(lines) {
+  const list = document.getElementById('js-src-list');
+  list.innerHTML = lines.map((ln, i) => {
+    const isBlank = !ln.text.trim();
+    let rowCls = 'js-src-row ';
+    if (isBlank)   rowCls += 'js-blank';
+    else if (ln.dead) rowCls += 'js-dead';
+    else           rowCls += 'js-live';
+
+    let badge = '';
+    if (ln.dead && ln.kind && JS_KIND_BADGE[ln.kind]) {
+      const [label, cls] = JS_KIND_BADGE[ln.kind];
+      badge = `<span class="js-row-badge ${cls}">${label}</span>`;
+    } else if (!ln.dead && !isBlank) {
+      badge = '<span class="js-row-badge jbadge-live">LIVE</span>';
+    }
+
+    return `<div class="${rowCls}" style="--i:${i}" title="${ln.reason ? escapeHtml(ln.reason) : ''}">
+      <span class="js-row-num">${ln.line}</span>
+      <span class="js-row-dot"></span>
+      <span class="js-row-code">${escapeHtml(ln.text)}</span>
+      ${badge}
+    </div>`;
+  }).join('');
+}
+
+// ── Render findings list ───────────────────────────────────────────────────
+const JS_KIND_LABEL = {
+  unused_var:  ['🗑️', 'Unused Variable',  'jfkind-unused_var'],
+  unused_fn:   ['🔇', 'Dead Function',    'jfkind-unused_fn'],
+  unreachable: ['🚧', 'Unreachable Code', 'jfkind-unreachable'],
+  dead_branch: ['🌿', 'Dead Branch',      'jfkind-dead_branch'],
+};
+
+function renderJSFindings(findings) {
+  const list = document.getElementById('js-findings-list');
+  if (!findings.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--green);font-size:0.9rem">✅ No dead code detected!</div>';
+    return;
+  }
+  list.innerHTML = findings.map((f, i) => {
+    const [icon, kindLabel, cls] = JS_KIND_LABEL[f.kind] || ['⚠️', f.kind, ''];
+    const namePart = f.name
+      ? `<span class="js-finding-name">${escapeHtml(f.name)}</span>`
+      : '';
+    return `<div class="js-finding-card ${cls}" style="--i:${i}">
+      <div class="js-finding-top">
+        <span style="font-size:16px">${icon}</span>
+        <span class="js-row-badge ${JS_KIND_BADGE[f.kind]?.[1] || ''}">${kindLabel}</span>
+        <span class="js-finding-line">Line ${f.line}</span>
+        ${namePart}
+      </div>
+      <div class="js-finding-code">${escapeHtml(f.text)}</div>
+      <div class="js-finding-msg">${escapeHtml(f.message)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── JS inner tab switcher ──────────────────────────────────────────────────
+function showJSInner(name) {
+  document.querySelectorAll('.js-inner-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.js-tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`jspanel-${name}`).classList.add('active');
+  document.getElementById(`jstab-${name}`).classList.add('active');
+}
+
+// ── Copy clean JS to clipboard ─────────────────────────────────────────────
+function copyJSClean() {
+  const text = document.getElementById('js-clean-body').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.js-copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+// Ctrl+Enter in JS editor
+document.getElementById('js-editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    runJSAnalysis();
+  }
+});
 
 // ── Demo programs ──────────────────────────────────────────────────────────
 const DEMOS = {
